@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+ruby '>= 3.4.4'
+
+gem 'anyway_config'
+
+gem 'concurrent-ruby'
+
+gem 'oj'
+
+gem 'redis'
