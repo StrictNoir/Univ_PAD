@@ -1,0 +1,7 @@
+# config/broker.yml
+host: 0.0.0.0
+port: 5001
+worker_count: 4
+dispatch_queue_size: 10000
+send_queue_size: 1000
+max_frame_bytes: 1048576
