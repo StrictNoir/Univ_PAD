@@ -5,6 +5,7 @@ require 'socket'
 require_relative 'connection'
 require_relative 'routing/registry'
 require_relative 'json'
+require_relative 'protocol/validator'
 
 module Broker
   class Server
@@ -15,6 +16,7 @@ module Broker
       @send_q = send_queue_size
       @dispatcher = dispatcher
       @registry = Routing::Registry.new
+      @dispatcher.registry = @registry
       @srv = TCPServer.new(@host, @port)
       trap('INT') { stop }
       trap('TERM') { stop }
@@ -54,8 +56,14 @@ module Broker
           end
         when 'PING'
           conn.send_json!({ 'op' => 'PONG' })
+        when 'PUBLISH'
+          msg = obj['message']
+          if Broker::Protocol::Validator.valid?(msg)
+            @dispatcher.enqueue(msg)
+          else
+            conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'invalid message' })
+          end
         else
-          # PUBLISH vine în commit-ul următor
           conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'unknown op' })
         end
       end

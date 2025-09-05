@@ -7,6 +7,8 @@ require 'concurrent'
 module Broker
   module Dispatch
     class Dispatcher
+      attr_writer :registry
+
       def initialize(registry:, workers:, queue_size:, redis: nil)
         @registry = registry
         @q = SizedQueue.new(queue_size)
