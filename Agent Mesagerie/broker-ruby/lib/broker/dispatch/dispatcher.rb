@@ -11,6 +11,7 @@ module Broker
 
       def initialize(registry:, workers:, queue_size:, redis: nil)
         @registry = registry
+        @store = store
         @q = SizedQueue.new(queue_size)
         @pool = Concurrent::FixedThreadPool.new(workers)
         @redis = redis
@@ -18,10 +19,10 @@ module Broker
       end
 
       def enqueue(message)
-        @redis&.persist!(message)
+        @store&.persist!(message)
         @q << message
       rescue ThreadError
-        # queue full
+        # full
       end
 
       def deliver(msg)
