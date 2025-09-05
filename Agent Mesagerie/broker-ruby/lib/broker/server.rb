@@ -75,6 +75,9 @@ module Broker
     end
 
     def stop
+      puts 'Shutting down…'
+      s = @registry.stats
+      puts "connections=#{s[:connections]} subscribers=#{s[:subscribers]}"
       begin
         @srv.close
       rescue StandardError
