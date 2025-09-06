@@ -9,12 +9,11 @@ module Broker
     class Dispatcher
       attr_writer :registry
 
-      def initialize(registry:, workers:, queue_size:, redis: nil)
+      def initialize(registry:, workers:, queue_size:, store: nil)
         @registry = registry
         @store = store
         @q = SizedQueue.new(queue_size)
         @pool = Concurrent::FixedThreadPool.new(workers)
-        @redis = redis
         workers.times { @pool.post { loop { deliver(@q.pop) } } }
       end
 
@@ -29,10 +28,13 @@ module Broker
         payload = { 'op' => 'DELIVER', 'deliveryId' => SecureRandom.uuid, 'message' => msg }
         @registry.targets_for(msg['type']).each do |conn|
           conn.send_json!(payload)
-        rescue StandardError
-          # optional: drop or log
         rescue StandardError => e
-          warn "deliver_failed: #{e.message}"
+          if e == :backpressure || e&.message == 'backpressure'
+            @store&.persist_conn!(conn.id, payload)
+            warn 'backpressure_spill'
+          else
+            warn "deliver_failed: #{e.message}"
+          end
         end
       end
     end

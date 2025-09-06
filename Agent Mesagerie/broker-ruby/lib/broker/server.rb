@@ -18,12 +18,13 @@ module Broker
       @registry = Routing::Registry.new
       @dispatcher.registry = @registry
       @srv = TCPServer.new(@host, @port)
+      @port = @srv.addr[1]
       trap('INT') { stop }
       trap('TERM') { stop }
     end
 
     def start
-      puts "Listening on #{@host}:#{@port}"
+      puts "Listening on #{@host}:#{@srv.addr[1]}"
       loop do
         sock = @srv.accept
         Thread.new { handle(sock) }
