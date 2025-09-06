@@ -7,6 +7,8 @@ require_relative 'framing'
 
 module Broker
   class Connection
+    class BackpressureError < StandardError; end
+
     attr_reader :id
 
     def initialize(socket, send_queue_size:)
@@ -18,7 +20,7 @@ module Broker
 
     def send_json!(obj)
       data = Json::DUMP.call(obj)
-      raise :backpressure if @out.size >= @out.max
+      raise BackpressureError, 'backpressure' if @out.size >= @out.max
 
       @out << data
     end
