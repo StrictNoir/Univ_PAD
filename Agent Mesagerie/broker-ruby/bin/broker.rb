@@ -26,5 +26,19 @@ end
 dispatcher = Broker::Dispatch::Dispatcher.new(registry: nil, workers: workers, queue_size: dq, store: store)
 # registry va fi creat în Server; dispatcher nu are nevoie aici de el
 
+if store && cfg.dig('replay', 'enabled')
+  cp_path = cfg['replay']['checkpoint']
+  data = store.load_checkpoint(cp_path)
+  cfg['replay']['subjects'].each do |subj|
+    last = data[subj] || '0-0'
+    store.replay_subject(subj, from_id: last) do |id, msg|
+      dispatcher.enqueue(msg)
+      last = id
+    end
+    data[subj] = last
+  end
+  store.save_checkpoint(cp_path, data)
+end
+
 server = Broker::Server.new(host: host, port: port, max_frame: maxb, send_queue_size: sq, dispatcher: dispatcher)
 server.start
