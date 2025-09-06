@@ -49,12 +49,15 @@ module Broker
         case obj['op']
         when 'SUBSCRIBE'
           pats = Array(obj['subjects']).select { |s| s.is_a?(String) && !s.empty? }
-          if pats.empty?
-            conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'subjects required' })
+          sid  = obj['subscriberId'].to_s.strip
+          if pats.empty? || sid.empty?
+            conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest',
+                              'detail' => 'subjects and subscriberId required' })
           else
-            @registry.update(conn, pats)
-            conn.send_json!({ 'op' => 'SUBSCRIBED', 'subjects' => pats })
+            @registry.update(conn, pats, subscriber_id: sid)
+            conn.send_json!({ 'op' => 'SUBSCRIBED', 'subjects' => pats, 'subscriberId' => sid })
           end
+
         when 'PING'
           conn.send_json!({ 'op' => 'PONG' })
         when 'PUBLISH'
