@@ -30,6 +30,8 @@ class RedisStore
   end
 
   def save_checkpoint(path, hash)
+    require 'fileutils'
+    FileUtils.mkdir_p(File.dirname(path))
     File.write(path, YAML.dump(hash))
   end
 

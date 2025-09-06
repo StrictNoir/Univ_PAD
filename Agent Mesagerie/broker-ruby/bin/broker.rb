@@ -8,7 +8,8 @@ require 'broker/version'
 require 'broker/server'
 require 'broker/dispatch/dispatcher'
 
-cfg = YAML.load_file(File.expand_path('../config/broker.yml', __dir__))
+cfg_path = File.expand_path('../config/broker.yml', __dir__)
+cfg = File.exist?(cfg_path) ? YAML.load_file(cfg_path) : {}
 host = ENV['BROKER_HOST'] || cfg['host']
 port = Integer(ENV['BROKER_PORT'] || cfg['port'])
 workers = Integer(ENV['BROKER_WORKERS'] || cfg['worker_count'])
@@ -26,10 +27,13 @@ end
 dispatcher = Broker::Dispatch::Dispatcher.new(registry: nil, workers: workers, queue_size: dq, store: store)
 # registry va fi creat în Server; dispatcher nu are nevoie aici de el
 
-if store && cfg.dig('replay', 'enabled')
-  cp_path = cfg['replay']['checkpoint']
+replay_cfg = cfg['replay'] || {}
+if store && replay_cfg['enabled']
+  cp_path = replay_cfg['checkpoint'] || 'data/redis_checkpoint.yml'
+  require 'fileutils'
+  FileUtils.mkdir_p(File.dirname(cp_path))
   data = store.load_checkpoint(cp_path)
-  cfg['replay']['subjects'].each do |subj|
+  Array(replay_cfg['subjects']).each do |subj|
     last = data[subj] || '0-0'
     store.replay_subject(subj, from_id: last) do |id, msg|
       dispatcher.enqueue(msg)
