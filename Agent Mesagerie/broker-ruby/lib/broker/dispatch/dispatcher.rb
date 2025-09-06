@@ -28,7 +28,7 @@ module Broker
         payload = { 'op' => 'DELIVER', 'deliveryId' => SecureRandom.uuid, 'message' => msg }
         @registry.targets_for(msg['type']).each do |conn|
           conn.send_json!(payload)
-        rescue StandardError => e
+        rescue BackpressureError => e
           if e == :backpressure || e&.message == 'backpressure'
             @store&.persist_conn!(conn.id, payload)
             warn 'backpressure_spill'
