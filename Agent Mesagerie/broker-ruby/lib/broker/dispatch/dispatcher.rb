@@ -30,7 +30,8 @@ module Broker
           conn.send_json!(payload)
         rescue BackpressureError => e
           if e == :backpressure || e&.message == 'backpressure'
-            @store&.persist_conn!(conn.id, payload)
+            sid = @registry.subscriber_id_for_conn(conn)
+            @store&.persist_conn!(sid, payload) if sid
             warn 'backpressure_spill'
           else
             warn "deliver_failed: #{e.message}"
