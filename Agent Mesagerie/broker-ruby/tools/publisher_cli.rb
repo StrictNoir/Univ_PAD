@@ -4,7 +4,6 @@
 # !/usr/bin/env ruby
 require 'socket'
 require 'json'
-require 'securerandom'
 require 'time'
 def wr(io, obj)
   s = JSON.dump(obj)
@@ -13,7 +12,30 @@ def wr(io, obj)
 end
 host, port, subj = ARGV
 s = TCPSocket.new(host, port.to_i)
-msg = { 'id' => SecureRandom.uuid, 'type' => subj, 'payload' => { 'demo' => true },
-        'timestamp' => Time.now.utc.iso8601 }
-wr(s, { 'op' => 'PUBLISH', 'message' => msg })
-puts "SENT: #{msg}"
+trap('INT') do
+  s.close
+  exit
+end
+
+id = 0
+loop do
+  print '> '
+  line = $stdin.gets
+  break unless line
+
+  line = line.strip
+  break if line.casecmp('exit').zero?
+  next if line.empty?
+
+  id += 1
+  msg = {
+    'id' => id,
+    'type' => subj,
+    'payload' => { 'text' => line },
+    'timestamp' => Time.now.utc.iso8601
+  }
+  wr(s, { 'op' => 'PUBLISH', 'message' => msg })
+  puts "SENT: #{msg}"
+end
+
+s.close

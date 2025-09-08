@@ -19,10 +19,21 @@ end
 host, port, pat, sid = ARGV
 s = TCPSocket.new(host, port.to_i)
 wr(s, { 'op' => 'SUBSCRIBE', 'subjects' => [pat], 'subscriberId' => sid || "sub-#{rand(1000)}" })
-Thread.new do
+trap('INT') do
+  s.close
+  exit
+end
+
+reader = Thread.new do
   loop do
-    raw = rd(s) or break
+    (raw = rd(s)) or break
     puts "IN: #{raw}"
   end
 end
-sleep
+loop do
+  (line = STDIN.gets) or break
+  break if line.strip.casecmp('exit').zero?
+end
+
+s.close
+reader.join
