@@ -27,6 +27,7 @@ module Broker
       puts "Listening on #{@host}:#{@srv.addr[1]}"
       loop do
         sock = @srv.accept
+        puts "ACCEPT #{sock.peeraddr[2]}:#{sock.peeraddr[1]}"
         Thread.new { handle(sock) }
       end
     rescue IOError, SystemCallError
@@ -56,6 +57,7 @@ module Broker
           else
             @registry.update(conn, pats, subscriber_id: sid)
             conn.send_json!({ 'op' => 'SUBSCRIBED', 'subjects' => pats, 'subscriberId' => sid })
+            puts "SUBSCRIBE sid=#{sid} subjects=#{pats.inspect}"
           end
 
         when 'PING'
@@ -63,6 +65,7 @@ module Broker
         when 'PUBLISH'
           msg = obj['message']
           if Broker::Protocol::Validator.valid?(msg)
+            puts "PUBLISH id=#{msg['id']} type=#{msg['type']} payload=#{msg['payload'].inspect}"
             @dispatcher.enqueue(msg)
           else
             conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'invalid message' })
