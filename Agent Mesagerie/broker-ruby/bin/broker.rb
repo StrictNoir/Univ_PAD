@@ -1,6 +1,6 @@
-# bin/broker (update)
-# !/usr/bin/env ruby
+#!/usr/bin/env ruby
 # frozen_string_literal: true
+# Agent Mesagerie/broker-ruby/bin/broker.rb
 
 $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
 require 'yaml'
@@ -10,12 +10,12 @@ require 'broker/dispatch/dispatcher'
 
 cfg_path = File.expand_path('../config/broker.yml', __dir__)
 cfg = File.exist?(cfg_path) ? YAML.load_file(cfg_path) : {}
-host = ENV['BROKER_HOST'] || cfg['host']
-port = Integer(ENV['BROKER_PORT'] || cfg['port'])
-workers = Integer(ENV['BROKER_WORKERS'] || cfg['worker_count'])
-dq = Integer(ENV['BROKER_DISPATCH_QUEUE_SIZE'] || cfg['dispatch_queue_size'])
-sq = Integer(ENV['BROKER_SEND_QUEUE_SIZE'] || cfg['send_queue_size'])
-maxb = Integer(ENV['BROKER_MAX_FRAME_BYTES'] || cfg['max_frame_bytes'])
+host = ENV['BROKER_HOST'] || cfg['host'] || '0.0.0.0'
+port = Integer(ENV['BROKER_PORT'] || cfg['port'] || 5001)
+workers = Integer(ENV['BROKER_WORKERS'] || cfg['worker_count'] || 4)
+dq = Integer(ENV['BROKER_DISPATCH_QUEUE_SIZE'] || cfg['dispatch_queue_size'] || 10_000)
+sq = Integer(ENV['BROKER_SEND_QUEUE_SIZE'] || cfg['send_queue_size'] || 1_000)
+maxb = Integer(ENV['BROKER_MAX_FRAME_BYTES'] || cfg['max_frame_bytes'] || 1_048_576)
 
 redis_url = ENV['REDIS_URL']
 redis_prefix = ENV['REDIS_STREAM_PREFIX'] || 'stream:messages:'
@@ -25,7 +25,6 @@ if redis_url
   store = RedisStore.new(url: redis_url, prefix: redis_prefix)
 end
 dispatcher = Broker::Dispatch::Dispatcher.new(registry: nil, workers: workers, queue_size: dq, store: store)
-# registry va fi creat în Server; dispatcher nu are nevoie aici de el
 
 replay_cfg = cfg['replay'] || {}
 if store && replay_cfg['enabled']
