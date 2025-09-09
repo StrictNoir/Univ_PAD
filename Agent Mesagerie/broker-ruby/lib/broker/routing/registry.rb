@@ -9,7 +9,6 @@ module Broker
       def initialize
         @conns = {} # conn_id => Connection
         @subs  = {} # conn_id => [patterns]
-        @by_subscriber = {} # subscriberId => conn_id
         @m = Mutex.new
       end
 
@@ -27,15 +26,11 @@ module Broker
         end
       end
 
-      def update(conn, patterns, subscriber_id: nil)
+      def update(conn, patterns)
         @m.synchronize do
-          @subs[conn.id] = patterns
-          @by_subscriber[subscriber_id] = conn.id if subscriber_id
+          current = @subs[conn.id] || []
+          @subs[conn.id] = (current | patterns)
         end
-      end
-
-      def subscriber_id_for_conn(conn)
-        @m.synchronize { @by_subscriber.key(conn.id) }
       end
 
       def targets_for(subject)

@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 # Agent Mesagerie/broker-ruby/bin/broker.rb
 
 $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
@@ -23,6 +24,9 @@ store = nil
 if redis_url
   require 'broker/storage/redis_store'
   store = RedisStore.new(url: redis_url, prefix: redis_prefix)
+else
+  require 'broker/storage/in_memory_store'
+  store = InMemoryStore.new
 end
 dispatcher = Broker::Dispatch::Dispatcher.new(registry: nil, workers: workers, queue_size: dq, store: store)
 
@@ -32,9 +36,9 @@ if store && replay_cfg['enabled']
   require 'fileutils'
   FileUtils.mkdir_p(File.dirname(cp_path))
   data = store.load_checkpoint(cp_path)
-  Array(replay_cfg['subjects']).each do |subj|
+  Array(replay_cfg['subjects'] || replay_cfg['topics']).each do |subj|
     last = data[subj] || '0-0'
-    store.replay_subject(subj, from_id: last) do |id, msg|
+    store.replay_topic(subj, from_id: last) do |id, msg|
       dispatcher.enqueue(msg)
       last = id
     end
@@ -43,5 +47,6 @@ if store && replay_cfg['enabled']
   store.save_checkpoint(cp_path, data)
 end
 
-server = Broker::Server.new(host: host, port: port, max_frame: maxb, send_queue_size: sq, dispatcher: dispatcher)
+server = Broker::Server.new(host: host, port: port, max_frame: maxb, send_queue_size: sq, dispatcher: dispatcher,
+                            store: store)
 server.start
