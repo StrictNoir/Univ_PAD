@@ -71,6 +71,30 @@ The work is carried out in two stages:
 👉 Rule of thumb: use `-u` on the first push of a branch, use `--force-with-lease` instead of `--force`, and always double-check the branch you’re pushing to.
 
 
+| Role           | Direction    | JSON frame                                                         | Notes                                                                                                                                                                                                    |
+| -------------- | ------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Publisher**  | → Broker     | `{"op":"PUBLISH","message":{…}}`                                   | The `message` object **must** contain `id`, `type`, `payload`, and ISO‑8601 `timestamp`. Invalid JSON or missing fields yield `{"op":"ERROR","code":"BadRequest","detail":"invalid message"}`            |
+| **Subscriber** | → Broker     | `{"op":"SUBSCRIBE","subjects":["order.*"],"subscriberId":"sub-1"}` | `subjects` = array of subject patterns; `subscriberId` = unique identifier. Broker responds with `{"op":"SUBSCRIBED","subjects":[...],"subscriberId":"sub-1"}` or an `ERROR` frame if fields are missing |
+| **Any client** | → Broker     | `{"op":"PING"}`                                                    | Broker replies `{"op":"PONG"}`; useful for keep‑alive checks                                                                                                                                             |
+| **Broker**     | → Subscriber | `{"op":"DELIVER","deliveryId":42,"message":{…}}`                   | Sent to all subscribers whose patterns match the message `type`                                                                                                                                          |
+| **Broker**     | → Any client | `{"op":"ERROR","code":"…","detail":"…"}`                           | Signals malformed JSON, missing/invalid fields, or unknown operations                                                                                                                                    |
+
+Connecting to the broker
+* Open a persistent TCP connection to the broker’s host and port (0.0.0.0:5001 unless configured otherwise).
+* All traffic is framed as length‑prefixed JSON:
+* Before every JSON payload, send a 4‑byte big‑endian integer specifying payload length.
+* Decode incoming frames using the same framing.
+
+Subject/pattern rules
+* Subjects and patterns use dot notation ("order.created").
+* wildcard matches exactly one segment (order.* matches order.created but not order.created.email).
+* Pattern length must equal subject length for a match.
+
+Recommended client behavior
+* For publishers: construct valid PUBLISH frames; no ACK is returned—monitor ERROR frames for failures.
+* For subscribers: send SUBSCRIBE immediately after connecting; maintain a read loop to process DELIVER frames and handle ERROR notifications.
+* For all clients: optionally send periodic PING frames to detect broken connections and reconnect as needed.
+
 ### Inspection
 - `git log --oneline --graph --decorate --all` – displays history nicely.
 - `git diff` – shows differences before committing.
