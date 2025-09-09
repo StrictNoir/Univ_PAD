@@ -1,0 +1,15 @@
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\bin\Debug\net8.0\Subscriber.exe
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\bin\Debug\net8.0\Subscriber.deps.json
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\bin\Debug\net8.0\Subscriber.runtimeconfig.json
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\bin\Debug\net8.0\Subscriber.dll
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\bin\Debug\net8.0\Subscriber.pdb
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.AssemblyInfoInputs.cache
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.AssemblyInfo.cs
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.csproj.CoreCompileInputs.cache
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.sourcelink.json
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.dll
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\refint\Subscriber.dll
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.pdb
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\Subscriber.genruntimeconfig.cache
+C:\Users\Mihai\Desktop\Univ_PAD\Agent Mesagerie\receiver-csharp\Subscriber\obj\Debug\net8.0\ref\Subscriber.dll
