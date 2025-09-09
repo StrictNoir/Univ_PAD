@@ -12,10 +12,11 @@ class RedisStore
   end
 
   def persist!(message)
-    key = "#{@prefix}#{message['type']}"
+    key = "#{@prefix}#{message['topic']}"
     @r.xadd(key, { 'data' => Broker::Json::DUMP.call(message), 'ts' => Time.now.utc.iso8601 })
   rescue StandardError => e
     warn "redis_persist_failed: #{e.message}"
+    nil
   end
 
   def persist_conn!(conn_id, payload)
@@ -35,7 +36,15 @@ class RedisStore
     File.write(path, YAML.dump(hash))
   end
 
-  def replay_subject(subject, from_id:)
+  def topic_exists?(topic)
+    key = "#{@prefix}#{topic}"
+    @r.exists(key).positive?
+  rescue StandardError => e
+    warn "redis_topic_exists_failed: #{e.message}"
+    false
+  end
+
+  def replay_topic(subject, from_id:)
     key = "#{@prefix}#{subject}"
     @r.xrange(key, "(#{from_id}", '+').each do |id, fields|
       msg = Broker::Json::LOAD.call(fields['data'])

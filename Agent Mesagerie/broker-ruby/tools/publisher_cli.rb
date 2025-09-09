@@ -4,22 +4,31 @@
 # !/usr/bin/env ruby
 require 'socket'
 require 'json'
-require 'time'
 def wr(io, obj)
   s = JSON.dump(obj)
   io.write([s.bytesize].pack('N'))
   io.write(s)
 end
-host, port, subj = ARGV
+
+host, port = ARGV
+abort("usage: #{$PROGRAM_NAME} HOST PORT") unless host && port
+
 s = TCPSocket.new(host, port.to_i)
 trap('INT') do
   s.close
   exit
 end
 
-id = 0
 loop do
-  print '> '
+  print 'topic> '
+  topic = $stdin.gets
+  break unless topic
+
+  topic = topic.strip
+  break if topic.casecmp('exit').zero?
+  next if topic.empty?
+
+  print 'message> '
   line = $stdin.gets
   break unless line
 
@@ -27,15 +36,8 @@ loop do
   break if line.casecmp('exit').zero?
   next if line.empty?
 
-  id += 1
-  msg = {
-    'id' => id,
-    'type' => subj,
-    'payload' => { 'text' => line },
-    'timestamp' => Time.now.utc.iso8601
-  }
-  wr(s, { 'op' => 'PUBLISH', 'message' => msg })
-  puts "SENT: #{msg}"
+  wr(s, { 'op' => 'PUBLISH', 'topic' => topic, 'message' => { 'text' => line } })
+  puts "SENT to #{topic}: #{line}"
 end
 
 s.close
