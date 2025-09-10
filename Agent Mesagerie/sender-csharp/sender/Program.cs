@@ -1,4 +1,6 @@
 ﻿
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +13,7 @@ internal static class Program
     private static async Task Main(string[] args)
     {
         var client = new TcpClient();
-        string brokerAddress = "0.0.0.0";
+        string brokerAddress = "192.168.60.244";
         int brokerPort = 5001;
 
         try
@@ -41,12 +43,15 @@ internal static class Program
                     {
                         op = "PING",
                     };
+                    
                     string jsonMessage = JsonSerializer.Serialize(message);
-                    byte[] data = Encoding.UTF8.GetBytes(jsonMessage);
-
+                    var body = Encoding.UTF8.GetBytes(jsonMessage);
+                    var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
+                    
                     try
                     {
-                        await stream.WriteAsync(data, 0, data.Length);
+                        await stream.WriteAsync(len, 0, 4);
+                        await stream.WriteAsync(body, 0, body.Length);
                     }
                     catch (Exception ex)
                     {
@@ -110,37 +115,36 @@ internal static class Program
     {
         var stream = client.GetStream();
         
-        Console.WriteLine("Type");
-        var type = Console.ReadLine();
-        if (type == null) { Console.WriteLine("Type not specified."); return; }
+        Console.WriteLine("Topic");
+        var topic = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(topic)) { Console.WriteLine("Topic not specified."); return; }
         
         Console.WriteLine("Title");
         var title = Console.ReadLine();
         
         Console.WriteLine("Content");
         var content = Console.ReadLine();
-
+        
         var message = new
         {
             op = "PUBLISH",
+            topic,
             message = new
             {
-                id = Guid.NewGuid(),
-                type,
-                payload = new
-                {
-                    title, 
-                    content
-                },
-                timestamp = DateTime.UtcNow
+                title, 
+                content
             }
         };
         string jsonMessage = JsonSerializer.Serialize(message);
-        byte[] data = Encoding.UTF8.GetBytes(jsonMessage);
+        var body = Encoding.UTF8.GetBytes(jsonMessage);
+        var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
+
+        Console.WriteLine(jsonMessage);
 
         try
         {
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(len, 0, len.Length);
+            await stream.WriteAsync(body, 0, body.Length);
         }
         catch (Exception ex)
         {
