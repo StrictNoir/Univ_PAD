@@ -40,6 +40,34 @@ host, port = ARGV
 abort("usage: #{$PROGRAM_NAME} HOST PORT") unless host && port
 
 s = TCPSocket.new(host, port.to_i)
+
+trap('INT') do
+  s.close
+  exit
+end
+
+reader = Thread.new do
+  loop do
+    (raw = rd(s)) or break
+    begin
+      msg = JSON.parse(raw)
+      case msg['op']
+      when 'DELIVER'
+        save_checkpoint(host, port, msg['topic'], msg['storeId']) if msg['storeId']
+        puts "#{msg['topic']}: #{msg['message']}"
+      when 'SUBSCRIBED'
+        puts "Subscribed to #{msg['topic']}"
+      when 'ERROR'
+        puts "ERROR #{msg['code']}: #{msg['detail']}"
+      else
+        puts "IN: #{raw}"
+      end
+    rescue JSON::ParserError
+      puts "IN: #{raw}"
+    end
+  end
+end
+
 puts 'Enter topics to subscribe to (blank line to finish):'
 loop do
   print 'topic> '
@@ -54,28 +82,6 @@ loop do
     req['from'] = from
   end
   wr(s, req)
-  puts "Subscribed to #{t}"
-end
-trap('INT') do
-  s.close
-  exit
-end
-
-reader = Thread.new do
-  loop do
-    (raw = rd(s)) or break
-    begin
-      msg = JSON.parse(raw)
-      if msg['op'] == 'DELIVER'
-        save_checkpoint(host, port, msg['topic'], msg['storeId']) if msg['storeId']
-        puts "#{msg['topic']}: #{msg['message']}"
-      else
-        puts "IN: #{raw}"
-      end
-    rescue JSON::ParserError
-      puts "IN: #{raw}"
-    end
-  end
 end
 
 puts 'Type a topic name to subscribe or "exit" to quit:'
@@ -93,7 +99,6 @@ loop do
     req['from'] = from
   end
   wr(s, req)
-  puts "Subscribed to #{line}"
 end
 
 s.close

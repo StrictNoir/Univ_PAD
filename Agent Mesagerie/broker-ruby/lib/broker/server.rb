@@ -55,8 +55,8 @@ module Broker
           from = obj['from']
           if topic.empty?
             conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'topic required' })
-          elsif @store.respond_to?(:topic_exists?) && !@store.topic_exists?(topic)
-            conn.send_json!({ 'op' => 'ERROR', 'code' => 'NotFound', 'detail' => 'unknown topic' })
+            @store.create_topic(topic) if @store.respond_to?(:create_topic)
+
           else
             @registry.update(conn, [topic])
             conn.send_json!({ 'op' => 'SUBSCRIBED', 'topic' => topic })

@@ -18,6 +18,36 @@ The work is carried out in two stages:
 ### Framing
 - `[4 bytes length][JSON UTF-8]`
 
+
+## 🟦 C# Publisher & Subscriber
+
+### Broker endpoint
+The Ruby broker listens on `0.0.0.0:5001` by default (see `Agent Mesagerie/broker-ruby/config/broker.yml`).
+Use `localhost:5001` when running all components locally.
+
+### Publisher flow
+1. Establish a TCP connection to the broker endpoint.
+2. Send `PUBLISH` frames with a topic and arbitrary JSON payload. Each frame is prefixed with a 4‑byte big‑endian length, e.g.
+   ```json
+   {"op":"PUBLISH","topic":"chat.general","message":{"text":"Hello world"}}
+   ```
+3. The broker forwards the message to all subscribers whose topic patterns match. Invalid frames trigger an `ERROR` response.
+4. Optionally send periodic `PING` frames to keep the connection alive.
+
+### Subscriber flow
+1. Connect to the same broker endpoint.
+2. Send a `SUBSCRIBE` frame with the topic pattern you want to receive. You may resume from a stored message id with `from`:
+   ```json
+   {"op":"SUBSCRIBE","topic":"chat.*","from":"42"}
+   ```
+3. Keep a read loop to process incoming frames. `DELIVER` frames contain published messages; `SUBSCRIBED` confirms the subscription and `ERROR` reports problems.
+4. Subscribers may also send `PING`; the broker replies with `PONG`.
+
+### How it works
+Both C# clients use the same length‑prefixed JSON protocol as the Ruby test CLIs.
+The broker compares each published `topic` against subscription patterns (supporting `*` as a single‑segment wildcard)
+and forwards messages to matching subscribers, enabling asynchronous, decoupled communication between components.
+
 # Git Workflow – Team Rules
 
 ## Basic Rules
@@ -26,58 +56,14 @@ The work is carried out in two stages:
 - Commits should be **clear and short** (`git commit -m "Implement broker routing"`).
 - Before opening a Pull Request, run `git pull --rebase origin main`.
 
-## Daily Work Commands
+| Role           | Direction    | JSON frame                                                         | Notes |
+| -------------- | ------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Publisher**  | → Broker     | `{"op":"PUBLISH","topic":"chat.general","message":{…}}`          | Delivered to all subscribers whose topic pattern matches the `topic` field. Payload can be any JSON object. |
+| **Subscriber** | → Broker     | `{"op":"SUBSCRIBE","topic":"chat.*","from":"42"}`              | `topic` = pattern to receive; optional `from` restarts delivery from a stored `storeId`. Broker responds with `SUBSCRIBED` or `ERROR`. |
+| **Any client** | → Broker     | `{"op":"PING"}`                                                  | Broker replies `{"op":"PONG"}`; useful for keep‑alive checks |
+| **Broker**     | → Subscriber | `{"op":"DELIVER","topic":"chat.general","storeId":"43","message":{…}}` | Sent to subscribers whose pattern matches. `storeId` can be saved as a checkpoint for resuming later. |
+| **Broker**     | → Any client | `{"op":"ERROR","code":"…","detail":"…"}`                         | Signals malformed JSON, missing/invalid fields, or unknown operations |
 
-### Initial Configuration
-- `git config --global user.name "Full Name"` – sets the author name.
-- `git config --global user.email "email@domain.com"` – sets the author email.
-- `git config --list` – check the current settings.
-
-### Cloning and Remote
-- `git clone <url>` – clones the repo.
-- `git remote -v` – shows the remote repos.
-- `git remote add origin <url>` – sets the origin remote.
-
-### Branching
-- `git branch` – lists local branches.
-- `git branch -r` – lists remote branches.
-- `git checkout -b feature/name` – creates and switches to a new branch.
-- `git switch main` – quickly switch to the main branch.
-- `git branch -d name` – deletes a local branch.
-
-### Commit & Stage
-- `git status` – shows changes compared to the repo.
-- `git add <file>` – stages a file for commit.
-- `git add .` – stages all modified files.
-- `git commit -m "message"` – saves changes locally.
-- `git commit --amend` – modifies the last commit.
-
-### Synchronization
-- `git fetch` – fetches changes from remote without merging them.
-- `git pull` – fetches + merges remote changes.
-- `git pull --rebase` – rewrites local history on top of the latest remote version (avoids unnecessary merge commits).
-## Git Push Commands
-
-| Command | Description | When to Use |
-|---------|-------------|-------------|
-| `git push` | Pushes commits from the current branch to its **default remote** (usually `origin`) and the branch it is tracking. | Simple case: you already have a remote branch set up (e.g., after a clone). |
-| `git push origin main` | Pushes the local `main` branch to the remote `origin` repository’s `main` branch. | Explicitly push a specific branch. Useful if no upstream is set. |
-| `git push -u origin main` | Pushes `main` and **sets the upstream** (link) between local `main` and `origin/main`. | First push of a new branch. After this, just `git push` works. |
-| `git push origin feature-branch` | Pushes the branch `feature-branch` to `origin`. | Share a feature branch with teammates. |
-| `git push origin --delete feature-branch` | Deletes the remote branch `feature-branch`. | Clean up remote branches no longer needed. |
-| `git push --force` | **Overwrites** the remote branch with your local commits, discarding any divergent remote history. | Use with caution (e.g., after rewriting history with `git rebase`). |
-| `git push --force-with-lease` | Safer force push: only overwrites if the remote branch hasn’t changed since you last fetched. | Preferred over plain `--force`. |
-
-👉 Rule of thumb: use `-u` on the first push of a branch, use `--force-with-lease` instead of `--force`, and always double-check the branch you’re pushing to.
-
-
-| Role           | Direction    | JSON frame                                                         | Notes                                                                                                                                                                                                    |
-| -------------- | ------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Publisher**  | → Broker     | `{"op":"PUBLISH","message":{…}}`                                   | The `message` object **must** contain `id`, `type`, `payload`, and ISO‑8601 `timestamp`. Invalid JSON or missing fields yield `{"op":"ERROR","code":"BadRequest","detail":"invalid message"}`            |
-| **Subscriber** | → Broker     | `{"op":"SUBSCRIBE","subjects":["order.*"],"subscriberId":"sub-1"}` | `subjects` = array of subject patterns; `subscriberId` = unique identifier. Broker responds with `{"op":"SUBSCRIBED","subjects":[...],"subscriberId":"sub-1"}` or an `ERROR` frame if fields are missing |
-| **Any client** | → Broker     | `{"op":"PING"}`                                                    | Broker replies `{"op":"PONG"}`; useful for keep‑alive checks                                                                                                                                             |
-| **Broker**     | → Subscriber | `{"op":"DELIVER","deliveryId":42,"message":{…}}`                   | Sent to all subscribers whose patterns match the message `type`                                                                                                                                          |
-| **Broker**     | → Any client | `{"op":"ERROR","code":"…","detail":"…"}`                           | Signals malformed JSON, missing/invalid fields, or unknown operations                                                                                                                                    |
 
 Connecting to the broker
 * Open a persistent TCP connection to the broker’s host and port (0.0.0.0:5001 unless configured otherwise).
@@ -85,35 +71,16 @@ Connecting to the broker
 * Before every JSON payload, send a 4‑byte big‑endian integer specifying payload length.
 * Decode incoming frames using the same framing.
 
-Subject/pattern rules
-* Subjects and patterns use dot notation ("order.created").
-* wildcard matches exactly one segment (order.* matches order.created but not order.created.email).
-* Pattern length must equal subject length for a match.
+Topic/pattern rules
+* Topics use dot notation ("chat.general").
+* `*` matches exactly one segment (`chat.*` matches `chat.general` but not `chat.general.news`).
+* Pattern length must equal topic length for a match.
 
 Recommended client behavior
 * For publishers: construct valid PUBLISH frames; no ACK is returned—monitor ERROR frames for failures.
-* For subscribers: send SUBSCRIBE immediately after connecting; maintain a read loop to process DELIVER frames and handle ERROR notifications.
+* For subscribers: send SUBSCRIBE immediately after connecting; maintain a read loop to process DELIVER, SUBSCRIBED, and ERROR frames.
 * For all clients: optionally send periodic PING frames to detect broken connections and reconnect as needed.
 
-### Inspection
-- `git log --oneline --graph --decorate --all` – displays history nicely.
-- `git diff` – shows differences before committing.
-- `git show <commit>` – shows details about a commit.
-
-### Revert & Reset
-- `git restore <file>` – reverts to the last saved version of the file.
-- `git checkout <commit> -- <file>` – retrieves a file version from a commit.
-- `git revert <commit>` – creates a commit that cancels the effects of the specified commit.
-- `git reset --hard <commit>` – completely resets to a commit (warning: local data loss).
-- `git clean -fd` – deletes untracked files.
-
-### Other Useful Flags
-- `git stash` – temporarily saves uncommitted changes.
-- `git stash pop` – restores stashed changes.
-- `git blame <file>` – shows who modified each line.
-- `git tag v1.0.0` – marks a release.
-
----
 
 ## Recommended Workflow
 1. `git checkout -b feature/name`

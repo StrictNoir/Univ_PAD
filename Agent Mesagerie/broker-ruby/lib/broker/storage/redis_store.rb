@@ -44,6 +44,12 @@ class RedisStore
     false
   end
 
+  # Redis streams are created automatically on first publish
+  # so subscriptions to new topics do not require pre-creation.
+  def create_topic(_topic)
+    # no-op
+  end
+
   def replay_topic(subject, from_id:)
     key = "#{@prefix}#{subject}"
     @r.xrange(key, "(#{from_id}", '+').each do |id, fields|
