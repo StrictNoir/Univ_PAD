@@ -33,6 +33,13 @@ class InMemoryStore
     @m.synchronize { @topics.include?(topic) }
   end
 
+  def create_topic(topic)
+    @m.synchronize do
+      @messages[topic] ||= []
+      @topics << topic
+    end
+  end
+
   def replay_topic(topic, from_id: '0')
     from = from_id.to_i
     @m.synchronize do
