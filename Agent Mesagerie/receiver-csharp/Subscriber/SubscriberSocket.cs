@@ -35,7 +35,7 @@ namespace Subscriber
             }
         }
 
-        public async Task SubscribeAsync(string[] subjects, string subscriberId)
+        public async Task SubscribeAsync(string topic, string from)
         {
             if (_stream == null)
             {
@@ -46,12 +46,12 @@ namespace Subscriber
             var frame = new
             {
                 op = "SUBSCRIBE",
-                subjects,
-                subscriberId
+                topic,
+                from
             };
 
             await WriteFrameAsync(JsonSerializer.Serialize(frame));
-            Console.WriteLine($"Sent SUBSCRIBE for: {string.Join(", ", subjects)}");
+            Console.WriteLine($"Sent SUBSCRIBE for: {topic}");
         }
 
         public async Task PingAsync()
