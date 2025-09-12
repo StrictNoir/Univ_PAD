@@ -39,7 +39,9 @@ class Program
     private static string RequestRecoverCheckpoint()
     {
         Console.WriteLine("Enter a recovery checkpoint: (ex: 42)");
-        string checkpoint = Console.ReadLine() ?? "1";
+        string checkpoint = Console.ReadLine() ?? string.Empty;
+
+        if (string.IsNullOrEmpty(checkpoint)) checkpoint = "1";
 
         return checkpoint;
 
