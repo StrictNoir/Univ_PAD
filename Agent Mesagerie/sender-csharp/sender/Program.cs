@@ -1,5 +1,4 @@
 ﻿
-using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,11 +9,11 @@ namespace sender;
 
 internal static class Program
 {
-    private static async Task Main(string[] args)
+    private static async Task Main()
     {
         var client = new TcpClient();
-        string brokerAddress = "192.168.60.244";
-        int brokerPort = 5001;
+        var brokerAddress = "192.168.60.244";
+        var brokerPort = 5001;
 
         try
         {
@@ -25,7 +24,6 @@ internal static class Program
             Console.WriteLine("Could not connect to the broker");
             Environment.Exit(1);
         }
-        var stream = client.GetStream();
         Console.WriteLine("Connected to server.");
 
         _ = ReceiveMessages(client);
@@ -39,25 +37,8 @@ internal static class Program
                     Environment.Exit(0);
                     break;
                 case "ping":
-                    var message = new
-                    {
-                        op = "PING",
-                    };
-                    
-                    string jsonMessage = JsonSerializer.Serialize(message);
-                    var body = Encoding.UTF8.GetBytes(jsonMessage);
-                    var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
-                    
-                    try
-                    {
-                        await stream.WriteAsync(len, 0, 4);
-                        await stream.WriteAsync(body, 0, body.Length);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Could not write to server. Exception: {ex.Message}");
-                        Environment.Exit(1);
-                    }
+                    await Ping(client);
+                    Console.WriteLine("Sent ping message.");
                     break;
                 case "publish":
                     await Publish(client);
@@ -71,12 +52,12 @@ internal static class Program
     {
         try
         {
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[1024];
+            var stream = client.GetStream();
 
             while (true)
             {
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                var buffer = new byte[4];
+                var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead == 0)
                 {
                     Console.WriteLine("Disconnected.");
@@ -84,7 +65,7 @@ internal static class Program
                     Environment.Exit(0);
                 }
 
-                string jsonMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                var jsonMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 var receivedMessage = JsonNode.Parse(jsonMessage);
 
                 switch (receivedMessage?["op"]?.ToString())
@@ -106,6 +87,31 @@ internal static class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Connection error: {ex.Message}");
+            client.Close();
+            Environment.Exit(1);
+        }
+    }
+
+    private static async Task Ping(TcpClient client)
+    {
+        var stream = client.GetStream();
+        var message = new
+        {
+            op = "PING",
+        };
+                    
+        var jsonMessage = JsonSerializer.Serialize(message);
+        var body = Encoding.UTF8.GetBytes(jsonMessage);
+        var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
+                    
+        try
+        {
+            await stream.WriteAsync(len, 0, len.Length);
+            await stream.WriteAsync(body, 0, body.Length);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not write to server. Exception: {ex.Message}");
             client.Close();
             Environment.Exit(1);
         }
@@ -135,7 +141,7 @@ internal static class Program
                 content
             }
         };
-        string jsonMessage = JsonSerializer.Serialize(message);
+        var jsonMessage = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(jsonMessage);
         var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
 
