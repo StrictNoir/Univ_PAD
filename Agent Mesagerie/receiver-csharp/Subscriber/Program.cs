@@ -5,45 +5,55 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        Console.WriteLine("Subscriber starting...");
-
         var subscriber = new SubscriberSocket();
-
         await subscriber.ConnectAsync(IPAddress.Loopback, 5000);
 
         if (subscriber.IsConnected)
         {
-            string topic = RequestTopicFromUser();
-            string checkpoint = RequestRecoverCheckpoint();
+            Console.WriteLine("Subscriber connected. Type commands: (chat.* to subscrie to a topic)");
 
-            await subscriber.SubscribeAsync(topic, checkpoint);
+            while (true)
+            {
+                string input = Console.ReadLine()?.Trim() ?? string.Empty;
 
-            await subscriber.PingAsync();
+                if (string.IsNullOrEmpty(input)) continue;
 
+                if (input.StartsWith("chat"))
+                {
+                    string checkpoint = RequestRecoverCheckpoint();
+                    await subscriber.SubscribeAsync(input, checkpoint);
+                    Console.WriteLine($"Subscribed to topic {input} from checkpoint {checkpoint}");
+                }
+                else if (input.ToLower() == "ping")
+                {
+                    await subscriber.PingAsync();
+                }
+                else if (input.ToLower() == "exit")
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Unknown command. Type 'ping', a topic like 'chat.*', or 'exit'");
+                }
+            }
         }
-
-        Console.ReadLine();
     }
-    private static string RequestTopicFromUser()
-    {
-        Console.WriteLine("Enter topic: (like this chat.*)");
-        string topic = Console.ReadLine() ?? string.Empty;
 
-        while (string.IsNullOrEmpty(topic) || !topic.StartsWith("chat"))
-        {
-            Console.WriteLine("Enter topic again.");
-            topic = Console.ReadLine() ?? string.Empty;
-        }
-        return topic;
-    }
     private static string RequestRecoverCheckpoint()
     {
         Console.WriteLine("Enter a recovery checkpoint: (ex: 42)");
         string checkpoint = Console.ReadLine() ?? string.Empty;
+        bool result = int.TryParse(checkpoint, out int parsedValue);
 
-        if (string.IsNullOrEmpty(checkpoint)) checkpoint = "1";
+        while(!result || string.IsNullOrEmpty(checkpoint))
+        {
+            Console.WriteLine("Try to enter an int value.");
+            checkpoint = Console.ReadLine() ?? string.Empty;
+            result = int.TryParse(checkpoint, out parsedValue);
+        }
 
         return checkpoint;
-
     }
+
 }
