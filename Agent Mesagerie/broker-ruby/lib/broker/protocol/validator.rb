@@ -13,6 +13,7 @@ module Broker
 
         miss = REQUIRED - msg.keys.map(&:to_s)
         return false unless miss.empty?
+
         true
       end
     end
