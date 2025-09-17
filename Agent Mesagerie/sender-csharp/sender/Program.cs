@@ -11,8 +11,9 @@ internal static class Program
 {
     private static async Task Main()
     {
+        Console.ForegroundColor = ConsoleColor.White;
         var client = new TcpClient();
-        var brokerAddress = "192.168.60.244";
+        var brokerAddress = "192.168.191.244";
         var brokerPort = 5001;
 
         try
@@ -50,22 +51,19 @@ internal static class Program
     
     private static async Task ReceiveMessages(TcpClient client)
     {
-        try
+        var stream = client.GetStream();
+
+        while (true)
         {
-            var stream = client.GetStream();
-
-            while (true)
+            try
             {
-                var buffer = new byte[4];
-                var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
-                {
-                    Console.WriteLine("Disconnected.");
-                    client.Close();
-                    Environment.Exit(0);
-                }
+                var lengthBytes = await ReadExact(stream, 4);
+                var len = IPAddress.HostToNetworkOrder(BitConverter.ToInt32(lengthBytes, 0));
 
-                var jsonMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                if (len == 0) break;
+
+                var bodyBytes = await ReadExact(stream, len);
+                var jsonMessage = Encoding.UTF8.GetString(bodyBytes);
                 var receivedMessage = JsonNode.Parse(jsonMessage);
 
                 switch (receivedMessage?["op"]?.ToString())
@@ -83,14 +81,32 @@ internal static class Program
                         break;
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Connection error: {ex.Message}");
-            client.Close();
-            Environment.Exit(1);
+            catch (IOException)
+            {
+                Console.WriteLine("Disconnected.");
+                client.Close();
+                Environment.Exit(0);
+            }
         }
     }
+
+    private static async Task<byte[]> ReadExact(Stream stream, int length)
+    {
+        var buffer = new byte[length];
+        var totalBytesRead = 0;
+
+        while (totalBytesRead < length)
+        {
+            var bytesRead = await stream.ReadAsync(buffer, totalBytesRead, length - totalBytesRead);
+            if (bytesRead == 0)
+            {
+                throw new EndOfStreamException();
+            }
+            totalBytesRead += bytesRead;
+        }
+        return buffer;
+    }
+    
 
     private static async Task Ping(TcpClient client)
     {
@@ -121,32 +137,60 @@ internal static class Program
     {
         var stream = client.GetStream();
         
-        Console.WriteLine("Topic");
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Welcome to the Message Publisher!");
+        Console.WriteLine("Please provide the following details to publish your message:");
+
+        // Get Topic
+        Console.Write("Enter the topic: ");
+        Console.ForegroundColor = ConsoleColor.White;
+
         var topic = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(topic)) { Console.WriteLine("Topic not specified."); return; }
-        
-        Console.WriteLine("Title");
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            Console.WriteLine("Error: Topic not specified. Please try again.");
+            return;
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        // Get Title
+        Console.Write("Enter the title: ");
+        Console.ForegroundColor = ConsoleColor.White;
+
         var title = Console.ReadLine();
-        
-        Console.WriteLine("Content");
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            Console.WriteLine("Error: Title not specified. Please try again.");
+            return;
+        }
+
+        // Get Content
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("Enter the content: ");
+        Console.ForegroundColor = ConsoleColor.White;
         var content = Console.ReadLine();
-        
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            Console.WriteLine("Error: Content not specified. Please try again.");
+            return;
+        }
+
+        // Create the message object
         var message = new
         {
             op = "PUBLISH",
             topic,
             message = new
             {
-                title, 
+                title,
                 content
             }
         };
+        
         var jsonMessage = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(jsonMessage);
         var len = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(body.Length));
-
-        Console.WriteLine(jsonMessage);
-
+        
         try
         {
             await stream.WriteAsync(len, 0, len.Length);
