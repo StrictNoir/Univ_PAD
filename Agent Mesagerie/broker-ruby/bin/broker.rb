@@ -18,16 +18,18 @@ dq = Integer(ENV['BROKER_DISPATCH_QUEUE_SIZE'] || cfg['dispatch_queue_size'] || 
 sq = Integer(ENV['BROKER_SEND_QUEUE_SIZE'] || cfg['send_queue_size'] || 1_000)
 maxb = Integer(ENV['BROKER_MAX_FRAME_BYTES'] || cfg['max_frame_bytes'] || 1_048_576)
 
-redis_url = ENV['REDIS_URL']
-redis_prefix = ENV['REDIS_STREAM_PREFIX'] || 'stream:messages:'
-store = nil
-if redis_url
-  require 'broker/storage/redis_store'
-  store = RedisStore.new(url: redis_url, prefix: redis_prefix)
-else
-  require 'broker/storage/in_memory_store'
-  store = InMemoryStore.new
+redis_cfg = cfg['redis'] || {}
+redis_url = ENV['REDIS_URL'] || redis_cfg['url']
+redis_prefix = ENV['REDIS_STREAM_PREFIX'] || redis_cfg['stream_prefix'] || 'stream:messages:'
+
+unless redis_url && !redis_url.empty?
+  warn 'Redis configuration missing. Provide redis.url in config/broker.yml or set REDIS_URL.'
+  exit 1
 end
+
+require 'broker/storage/redis_store'
+store = RedisStore.new(url: redis_url, prefix: redis_prefix)
+
 dispatcher = Broker::Dispatch::Dispatcher.new(registry: nil, workers: workers, queue_size: dq, store: store)
 
 replay_cfg = cfg['replay'] || {}
