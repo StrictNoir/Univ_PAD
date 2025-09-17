@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Subscriber.Models;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -11,6 +12,12 @@ namespace Subscriber
     {
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
+
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
         public bool IsConnected => _tcpClient.Connected;
 
         public SubscriberSocket()
@@ -82,22 +89,20 @@ namespace Subscriber
             {
                 while (true)
                 {
-                    
+                    // 1. Read the 4-byte length prefix
                     byte[] lengthBuffer = new byte[4];
-                    // citeste mai intai lungimea mesajului care va veni
                     int read = await ReadExactAsync(_stream, lengthBuffer, lengthBuffer.Length);
                     if (read == 0)
                     {
                         Console.WriteLine("Connection closed by broker.");
                         break;
                     }
-                    // numarul de byti necesari pentru mesaj
+
                     int frameLength = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(lengthBuffer, 0));
                     if (frameLength <= 0) continue;
 
-                    
+                    // 2. Read the JSON payload
                     byte[] payload = new byte[frameLength];
-                    // citeste payloadul
                     read = await ReadExactAsync(_stream, payload, frameLength);
                     if (read == 0)
                     {
@@ -105,8 +110,33 @@ namespace Subscriber
                         break;
                     }
 
-                    string message = Encoding.UTF8.GetString(payload);
-                    Console.WriteLine($"Received: {message}");
+                    string json = Encoding.UTF8.GetString(payload);
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(json);
+                        string? op = doc.RootElement.GetProperty("op").GetString();
+
+                        switch (op)
+                        {
+                            case "DELIVER":
+                                HandleDeliveryMessage(json);
+                                break;
+                            case "SUBSCRIBED":
+                                HandleSubscribedMessage(json);
+                                break;
+                            case "PONG":
+                                Console.WriteLine("Received PONG response from broker");
+                                break;
+                            default:
+                                Console.WriteLine($"Received unknown op: {op}");
+                                Console.WriteLine($"Raw JSON: {json}");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to parse frame: {ex.Message}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -119,6 +149,26 @@ namespace Subscriber
             }
         }
 
+        private void HandleDeliveryMessage(string json)
+        {
+            var deliver = JsonSerializer.Deserialize<DeliveryMessage>(json, _jsonOptions);
+            if (deliver != null)
+            {
+                Console.WriteLine("=== New DELIVER Message ===");
+                Console.WriteLine($"Topic: {deliver.Topic}");
+                Console.WriteLine($"Title: {deliver.Message.Title}");
+                Console.WriteLine($"Content: {deliver.Message.Content}");
+                Console.WriteLine("===========================");
+            }
+        }
+        private void HandleSubscribedMessage(string json)
+        {
+            var subscribed = JsonSerializer.Deserialize<SubscribedMessage>(json, _jsonOptions);
+            if (subscribed != null)
+            {
+                Console.WriteLine($"Successfully subscribed to topic: {subscribed.Topic}");
+            }
+        }
         private static async Task<int> ReadExactAsync(NetworkStream stream, byte[] buffer, int size)
         {
             int offset = 0;

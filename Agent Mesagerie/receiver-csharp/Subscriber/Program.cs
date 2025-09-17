@@ -6,7 +6,10 @@ class Program
     static async Task Main(string[] args)
     {
         var subscriber = new SubscriberSocket();
-        await subscriber.ConnectAsync(IPAddress.Loopback, 5000);
+        string ipaddress = "192.168.52.244";
+
+
+        await subscriber.ConnectAsync(IPAddress.Parse(ipaddress), 5001);
 
         if (subscriber.IsConnected)
         {
