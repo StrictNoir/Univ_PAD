@@ -1,45 +1,87 @@
 ﻿using Subscriber;
-using System.Net;
+
 
 class Program
 {
     static string ipAddress = "127.0.0.1";
     static int port = 5000;
+
     static async Task Main(string[] args)
     {
-        var subscriber = new SubscriberSocket(ipAddress,port);
+        SubscriberSocket? subscriber = null;
 
+        Console.WriteLine("Type 'connect' to connect to broker, 'disconnect' to disconnect, 'exit' to quit.");
 
-        await subscriber.ConnectAsync();
-
-        if (subscriber.IsConnected)
+        while (true)
         {
-            Console.WriteLine("Subscriber connected. Type commands: (chat.* to subscrie to a topic)");
+            string input = Console.ReadLine()?.Trim().ToLower() ?? string.Empty;
 
-            while (true)
+            if (string.IsNullOrEmpty(input))
+                continue;
+
+            switch (input)
             {
-                string input = Console.ReadLine()?.Trim() ?? string.Empty;
+                case "connect":
+                    if (subscriber != null && subscriber.IsConnected)
+                    {
+                        Console.WriteLine("Already connected.");
+                        break;
+                    }
 
-                if (string.IsNullOrEmpty(input)) continue;
-
-                if (input.StartsWith("chat"))
-                {
-                    await subscriber.SubscribeAsync(input);
-                }
-                else if (input.ToLower() == "ping")
-                {
-                    await subscriber.PingAsync();
-                }
-                else if (input.ToLower() == "exit")
-                {
+                    subscriber = new SubscriberSocket(ipAddress, port);
+                    await subscriber.ConnectAsync();
+                    if (subscriber.IsConnected)
+                    {
+                        Console.WriteLine("Subscriber connected. Type commands: chat.*, ping, disconnect, exit");
+                    }
                     break;
-                }
-                else
-                {
-                    Console.WriteLine("Unknown command. Type 'ping', a topic like 'chat.*', or 'exit'");
-                }
+
+                case "disconnect":
+                    if (subscriber != null && subscriber.IsConnected)
+                    {
+                        subscriber.Close();
+                        Console.WriteLine("Subscriber disconnected.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Subscriber is not connected.");
+                    }
+                    break;
+
+                case "ping":
+                    if (subscriber != null && subscriber.IsConnected)
+                    {
+                        await subscriber.PingAsync();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Not connected. Use 'connect' first.");
+                    }
+                    break;
+
+                case "exit":
+                    if (subscriber != null && subscriber.IsConnected)
+                        subscriber.Close();
+                    return;
+
+                default:
+                    if (input.StartsWith("chat"))
+                    {
+                        if (subscriber != null && subscriber.IsConnected)
+                        {
+                            await subscriber.SubscribeAsync(input);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Not connected. Use 'connect' first.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Unknown command. Type 'connect', 'disconnect', 'ping', chat.*, or 'exit'");
+                    }
+                    break;
             }
         }
     }
-
 }
