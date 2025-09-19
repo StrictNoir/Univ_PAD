@@ -13,8 +13,8 @@ internal static class Program
     {
         Console.ForegroundColor = ConsoleColor.White;
         var client = new TcpClient();
-        var brokerAddress = "192.168.191.244";
-        var brokerPort = 5001;
+        var brokerAddress = "127.0.0.1";
+        var brokerPort = 5000;
 
         try
         {

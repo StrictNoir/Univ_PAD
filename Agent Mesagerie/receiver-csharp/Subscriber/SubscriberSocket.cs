@@ -2,6 +2,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+
 using System.Text;
 using System.Text.Json;
 
@@ -62,7 +63,7 @@ namespace Subscriber
             {
                 op = "SUBSCRIBE",
                 topic,
-                from
+                from 
             };
 
             await WriteFrameAsync(JsonSerializer.Serialize(frame));
@@ -170,6 +171,7 @@ namespace Subscriber
                 {
                     CheckpointCreator.SaveCheckpoint(_address, _port, delivery.Topic, delivery.StoreId);
                 }
+  
             }
             catch (Exception ex)
             {
@@ -179,7 +181,26 @@ namespace Subscriber
 
         private void HandleSubscribedMessage(string json)
         {
-            var subscribed = JsonSerializer.Deserialize<SubscribedMessage>(json, _jsonOptions);
+            Console.WriteLine($"=== SUBSCRIBED RESPONSE ===");
+            Console.WriteLine($"Raw JSON: {json}");
+
+            try
+            {
+                var subscribed = JsonSerializer.Deserialize<SubscribedMessage>(json, _jsonOptions);
+                if (subscribed == null)
+                {
+                    Console.WriteLine("Could not subscribe - null response");
+                }
+                else
+                {
+                    Console.WriteLine($"Successfully subscribed to: {subscribed.Topic}");
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse SUBSCRIBED message: {ex.Message}");
+            }
         }
         private static async Task<int> ReadExactAsync(NetworkStream stream, byte[] buffer, int size)
         {
