@@ -5,3 +5,6 @@ worker_count: 4
 dispatch_queue_size: 10000
 send_queue_size: 1000
 max_frame_bytes: 1048576
+redis:
+  url: redis://127.0.0.1:6379/0
+  stream_prefix: "stream:messages:"
