@@ -12,6 +12,9 @@ Debug/
 Release/
 x64/
 x86/
+**/bin/
+**/obj/
+**/.vs/
 
 # Resurse generate de Rider / JetBrains
 .idea/

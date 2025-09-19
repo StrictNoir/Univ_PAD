@@ -3,13 +3,14 @@ using System.Net;
 
 class Program
 {
+    static string ipAddress = "127.0.0.1";
+    static int port = 5000;
     static async Task Main(string[] args)
     {
-        var subscriber = new SubscriberSocket();
-        string ipaddress = "192.168.52.244";
+        var subscriber = new SubscriberSocket(ipAddress,port);
 
 
-        await subscriber.ConnectAsync(IPAddress.Parse(ipaddress), 5001);
+        await subscriber.ConnectAsync();
 
         if (subscriber.IsConnected)
         {
@@ -23,9 +24,7 @@ class Program
 
                 if (input.StartsWith("chat"))
                 {
-                    string checkpoint = RequestRecoverCheckpoint();
-                    await subscriber.SubscribeAsync(input, checkpoint);
-                    Console.WriteLine($"Subscribed to topic {input} from checkpoint {checkpoint}");
+                    await subscriber.SubscribeAsync(input);
                 }
                 else if (input.ToLower() == "ping")
                 {
@@ -41,22 +40,6 @@ class Program
                 }
             }
         }
-    }
-
-    private static string RequestRecoverCheckpoint()
-    {
-        Console.WriteLine("Enter a recovery checkpoint: (ex: 42)");
-        string checkpoint = Console.ReadLine() ?? string.Empty;
-        bool result = int.TryParse(checkpoint, out int parsedValue);
-
-        while(!result || string.IsNullOrEmpty(checkpoint))
-        {
-            Console.WriteLine("Try to enter an int value.");
-            checkpoint = Console.ReadLine() ?? string.Empty;
-            result = int.TryParse(checkpoint, out parsedValue);
-        }
-
-        return checkpoint;
     }
 
 }

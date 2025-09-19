@@ -2,9 +2,10 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+
 
 namespace Subscriber
 {
@@ -12,6 +13,9 @@ namespace Subscriber
     {
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
+        private string _address;
+        private int _port;
+
 
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
@@ -20,16 +24,19 @@ namespace Subscriber
         };
         public bool IsConnected => _tcpClient.Connected;
 
-        public SubscriberSocket()
+        public SubscriberSocket(string address,int port)
         {
             _tcpClient = new TcpClient();
+            _address = address;
+            _port = port;
         }
 
-        public async Task ConnectAsync(IPAddress address, int port)
+        public async Task ConnectAsync()
         {
             try
             {
-                await _tcpClient.ConnectAsync(address, port);
+                var ipAddress = IPAddress.Parse(_address);
+                await _tcpClient.ConnectAsync(ipAddress, _port);
                 _stream = _tcpClient.GetStream();
                 Console.WriteLine("Successfully connected to the broker.");
 
@@ -42,7 +49,7 @@ namespace Subscriber
             }
         }
 
-        public async Task SubscribeAsync(string topic, string from)
+        public async Task SubscribeAsync(string topic)
         {
             if (_stream == null)
             {
@@ -50,11 +57,13 @@ namespace Subscriber
                 return;
             }
 
+            string? from = CheckpointCreator.LoadCheckpoint(_address, _port,topic);
+
             var frame = new
             {
                 op = "SUBSCRIBE",
                 topic,
-                from
+                from 
             };
 
             await WriteFrameAsync(JsonSerializer.Serialize(frame));
@@ -151,22 +160,46 @@ namespace Subscriber
 
         private void HandleDeliveryMessage(string json)
         {
-            var deliver = JsonSerializer.Deserialize<DeliveryMessage>(json, _jsonOptions);
-            if (deliver != null)
+            try
             {
-                Console.WriteLine("=== New DELIVER Message ===");
-                Console.WriteLine($"Topic: {deliver.Topic}");
-                Console.WriteLine($"Title: {deliver.Message.Title}");
-                Console.WriteLine($"Content: {deliver.Message.Content}");
-                Console.WriteLine("===========================");
+                var delivery = JsonSerializer.Deserialize<DeliveryMessage>(json, _jsonOptions);
+                if (delivery == null) return;
+
+                Console.WriteLine($"{delivery.Topic}: {JsonSerializer.Serialize(delivery.Message)}");
+
+                if (!string.IsNullOrEmpty(delivery.StoreId) && _address != null)
+                {
+                    CheckpointCreator.SaveCheckpoint(_address, _port, delivery.Topic, delivery.StoreId);
+                }
+  
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse DeliveryMessage: {ex.Message}");
             }
         }
+
         private void HandleSubscribedMessage(string json)
         {
-            var subscribed = JsonSerializer.Deserialize<SubscribedMessage>(json, _jsonOptions);
-            if (subscribed != null)
+            Console.WriteLine($"=== SUBSCRIBED RESPONSE ===");
+            Console.WriteLine($"Raw JSON: {json}");
+
+            try
             {
-                Console.WriteLine($"Successfully subscribed to topic: {subscribed.Topic}");
+                var subscribed = JsonSerializer.Deserialize<SubscribedMessage>(json, _jsonOptions);
+                if (subscribed == null)
+                {
+                    Console.WriteLine("Could not subscribe - null response");
+                }
+                else
+                {
+                    Console.WriteLine($"Successfully subscribed to: {subscribed.Topic}");
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse SUBSCRIBED message: {ex.Message}");
             }
         }
         private static async Task<int> ReadExactAsync(NetworkStream stream, byte[] buffer, int size)
@@ -183,8 +216,8 @@ namespace Subscriber
 
         public void Close()
         {
-            try { _stream?.Close(); } catch { }
-            try { _tcpClient?.Close(); } catch { }
+            _stream?.Close();
+            _tcpClient?.Close();
         }
     }
 }
