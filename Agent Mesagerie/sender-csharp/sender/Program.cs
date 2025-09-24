@@ -1,5 +1,4 @@
-﻿
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -11,21 +10,9 @@ internal static class Program
 {
     private static async Task Main()
     {
-        Console.ForegroundColor = ConsoleColor.White;
         var client = new TcpClient();
-        var brokerAddress = "192.168.191.244";
-        var brokerPort = 5001;
 
-        try
-        {
-            await client.ConnectAsync(brokerAddress, brokerPort);
-        }
-        catch
-        {
-            Console.WriteLine("Could not connect to the broker");
-            Environment.Exit(1);
-        }
-        Console.WriteLine("Connected to server.");
+        await ConnectToBroker(client);        
 
         _ = ReceiveMessages(client);
 
@@ -39,11 +26,12 @@ internal static class Program
                     break;
                 case "ping":
                     await Ping(client);
-                    Console.WriteLine("Sent ping message.");
                     break;
                 case "publish":
                     await Publish(client);
-                    Console.WriteLine("Message published.");
+                    break;
+                case "connect":
+                    await ConnectToBroker(client);
                     break;
             }
         }
@@ -141,6 +129,7 @@ internal static class Program
         Console.WriteLine("Welcome to the Message Publisher!");
         Console.WriteLine("Please provide the following details to publish your message:");
 
+        
         // Get Topic
         Console.Write("Enter the topic: ");
         Console.ForegroundColor = ConsoleColor.White;
@@ -151,9 +140,11 @@ internal static class Program
             Console.WriteLine("Error: Topic not specified. Please try again.");
             return;
         }
+        topic = "chat." + topic.Trim();
 
-        Console.ForegroundColor = ConsoleColor.Cyan;
+        
         // Get Title
+        Console.ForegroundColor = ConsoleColor.Cyan;
         Console.Write("Enter the title: ");
         Console.ForegroundColor = ConsoleColor.White;
 
@@ -163,6 +154,7 @@ internal static class Program
             Console.WriteLine("Error: Title not specified. Please try again.");
             return;
         }
+        
 
         // Get Content
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -175,6 +167,7 @@ internal static class Program
             return;
         }
 
+        
         // Create the message object
         var message = new
         {
@@ -199,10 +192,48 @@ internal static class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Could not write to server. Exception: {ex.Message}");
-            client.Close();
-            Environment.Exit(1);
         }
+        Console.WriteLine("Message published.");
+    }
+
+    private static async Task ConnectToBroker(TcpClient client)
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("Enter broker IP: ");
+        Console.ForegroundColor = ConsoleColor.White;
+        string brokerAddress = Console.ReadLine();
+
+        if (!IPAddress.TryParse(brokerAddress, out _))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid IP address.");
+            Console.ForegroundColor = ConsoleColor.White;
+            return;
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("Enter broker port: ");
+        Console.ForegroundColor = ConsoleColor.White;
+        string portInput = Console.ReadLine();
+
+        if (!int.TryParse(portInput, out int brokerPort) || brokerPort < 1 || brokerPort > 65535)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid port number.");
+            Console.ForegroundColor = ConsoleColor.White;
+            return;
+        }
+        
+        try
+        {
+            await client.ConnectAsync(brokerAddress, brokerPort);
+        }
+        catch
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Could not connect to the broker");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        Console.WriteLine("Connected to server.");
     }
 }
-
-
