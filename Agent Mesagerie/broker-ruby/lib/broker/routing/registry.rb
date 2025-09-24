@@ -33,6 +33,12 @@ module Broker
         end
       end
 
+      def subscribed?(conn, pattern)
+        @m.synchronize do
+          Array(@subs[conn.id]).include?(pattern)
+        end
+      end
+
       def targets_for(subject)
         ids = @m.synchronize do
           @subs.select { |_id, pats| pats.any? { |pat| Matcher.match?(subject, pat) } }.keys

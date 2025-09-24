@@ -58,6 +58,11 @@ module Broker
             @store.create_topic(topic) if @store.respond_to?(:create_topic)
 
           else
+            if @registry.subscribed?(conn, topic)
+              conn.send_json!({ 'op' => 'ERROR', 'code' => 'AlreadySubscribed',
+                                'detail' => "already subscribed to #{topic}" })
+              next
+            end
             @registry.update(conn, [topic])
             conn.send_json!({ 'op' => 'SUBSCRIBED', 'topic' => topic })
             puts "SUBSCRIBE topic=#{topic}"
