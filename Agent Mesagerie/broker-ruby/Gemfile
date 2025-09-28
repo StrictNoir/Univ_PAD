@@ -11,3 +11,11 @@ gem 'concurrent-ruby'
 gem 'oj'
 
 gem 'redis'
+
+gem 'google-protobuf'
+
+gem 'grpc'
+
+group :development do
+  gem 'grpc-tools'
+end
