@@ -1,59 +1,58 @@
 # lib/broker/storage/in_memory_store.rb
 # frozen_string_literal: true
 
-require 'set'
-
-
 class InMemoryStore
+  MessageRecord = Struct.new(:subject, :message_id, :payload, :headers, :timestamp_ms, keyword_init: true)
+
   def initialize
-    @messages = Hash.new { |h, k| h[k] = [] }
-    @topics = Set.new
-    @m = Mutex.new
+    @messages = Hash.new { |h, k| h[k] = {} }
+    @lock = Mutex.new
+    @counters = Hash.new(0)
   end
 
-  # Persist a message in memory grouped by topic
-  def persist!(message)
-    topic = message['topic']
-    return unless topic
+  def persist!(record)
+    @lock.synchronize do
+      subject = record[:subject].to_s
+      message_id = record[:message_id].to_s.strip
 
-    @m.synchronize do
-      arr = @messages[topic]
-      arr << message
-      @topics << topic
-      arr.length
-    end
-  end
-
-  # Retrieve all messages for a given topic
-  def messages_for(topic)
-    @m.synchronize { @messages[topic].dup }
-  end
-
-  def topic_exists?(topic)
-    @m.synchronize { @topics.include?(topic) }
-  end
-
-  def create_topic(topic)
-    @m.synchronize do
-      @messages[topic] ||= []
-      @topics << topic
-    end
-  end
-
-  def replay_topic(topic, from_id: '0')
-    from = from_id.to_i
-    @m.synchronize do
-      Array(@messages[topic]).each_with_index do |msg, idx|
-        id = idx + 1
-        yield id.to_s, msg if id > from
+      if message_id.empty?
+        @counters[subject] += 1
+        message_id = @counters[subject].to_s
+      else
+        begin
+          numeric = Integer(message_id)
+          @counters[subject] = [@counters[subject], numeric].max
+        rescue ArgumentError, TypeError
+          # non-numeric ids do not update the counter
+        end
       end
+
+      msg = MessageRecord.new(subject: subject,
+                              message_id: message_id,
+                              payload: record[:payload],
+                              headers: record[:headers] || {},
+                              timestamp_ms: record[:timestamp_ms])
+      @messages[subject][message_id] = msg
+      msg
     end
   end
 
-  # No-op helpers to satisfy storage interface used by broker
-  def load_checkpoint(_path)
-    {}
+  def pending_for(subject)
+    @lock.synchronize do
+      @messages[subject].values.map(&:dup)
+    end
   end
 
-  def save_checkpoint(_path, _hash); end
+  def ack!(subject, message_id)
+    @lock.synchronize do
+      !!@messages[subject].delete(message_id)
+    end
+  end
+
+  def reset!
+    @lock.synchronize do
+      @messages.clear
+      @counters.clear
+    end
+  end
 end

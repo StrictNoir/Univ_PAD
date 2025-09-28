@@ -5,56 +5,80 @@ require 'time'
 require 'yaml'
 require_relative '../json'
 class RedisStore
+  MessageRecord = Struct.new(:subject, :message_id, :payload, :headers, :timestamp_ms, keyword_init: true)
+
   def initialize(url:, prefix:)
     require 'redis'
     @r = Redis.new(url: url)
     @prefix = prefix
   end
 
-  def persist!(message)
-    key = "#{@prefix}#{message['topic']}"
-    @r.xadd(key, { 'data' => Broker::Json::DUMP.call(message), 'ts' => Time.now.utc.iso8601 })
+  def persist!(record)
+    normalized = nil
+    normalized = normalize_record(record)
+    key = key_for(normalized[:subject])
+    data = Broker::Json::DUMP.call(normalized)
+    @r.hset(key, normalized[:message_id], data)
+    MessageRecord.new(normalized)
   rescue StandardError => e
     warn "redis_persist_failed: #{e.message}"
-    nil
+    MessageRecord.new(normalized || record)
   end
 
-  def persist_conn!(conn_id, payload)
-    key = "stream:out:#{conn_id}"
-    @r.xadd(key, { 'data' => Broker::Json::DUMP.call(payload), 'ts' => Time.now.utc.iso8601 })
+  def pending_for(subject)
+    key = key_for(subject)
+    raw = @r.hgetall(key)
+    raw.values.map do |json|
+      decoded = Broker::Json::LOAD.call(json)
+      MessageRecord.new(
+        subject: decoded['subject'],
+        message_id: decoded['message_id'],
+        payload: decoded['payload'],
+        headers: decoded['headers'] || {},
+        timestamp_ms: decoded['timestamp_ms']
+      )
+    end.sort_by(&:timestamp_ms)
   rescue StandardError => e
-    warn "redis_persist_conn_failed: #{e.message}"
+    warn "redis_pending_failed: #{e.message}"
+    []
   end
 
-  def load_checkpoint(path)
-    File.exist?(path) ? YAML.load_file(path) : {}
-  end
-
-  def save_checkpoint(path, hash)
-    require 'fileutils'
-    FileUtils.mkdir_p(File.dirname(path))
-    File.write(path, YAML.dump(hash))
-  end
-
-  def topic_exists?(topic)
-    key = "#{@prefix}#{topic}"
-    @r.exists(key).positive?
+  def ack!(subject, message_id)
+    key = key_for(subject)
+    @r.hdel(key, message_id) == 1
   rescue StandardError => e
-    warn "redis_topic_exists_failed: #{e.message}"
+    warn "redis_ack_failed: #{e.message}"
     false
   end
 
-  # Redis streams are created automatically on first publish
-  # so subscriptions to new topics do not require pre-creation.
-  def create_topic(_topic)
-    # no-op
+  private
+
+  def normalize_record(record)
+    subject = record[:subject].to_s
+    message_id = record[:message_id].to_s.strip
+    message_id = next_message_id_for(subject) if message_id.empty?
+
+    {
+      subject: subject,
+      payload: record[:payload],
+      headers: record[:headers] || {},
+      message_id: message_id,
+      timestamp_ms: record[:timestamp_ms]
+    }
   end
 
-  def replay_topic(subject, from_id:)
-    key = "#{@prefix}#{subject}"
-    @r.xrange(key, "(#{from_id}", '+').each do |id, fields|
-      msg = Broker::Json::LOAD.call(fields['data'])
-      yield id, msg
-    end
+  def key_for(subject)
+    "#{@prefix}#{subject}"
+  end
+
+  def counter_key_for(subject)
+    "#{@prefix}#{subject}:seq"
+  end
+
+  def next_message_id_for(subject)
+    @r.incr(counter_key_for(subject)).to_s
+  rescue StandardError => e
+    warn "redis_sequence_failed: #{e.message}"
+    Time.now.utc.to_i.to_s
   end
 end

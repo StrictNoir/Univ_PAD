@@ -1,119 +1,82 @@
-# lib/broker/server.rb
 # frozen_string_literal: true
 
+require 'grpc'
+require 'logger'
 require 'socket'
-require_relative 'connection'
-require_relative 'routing/registry'
-require_relative 'json'
+require 'broker_services_pb'
+require_relative 'grpc/service'
+require_relative 'grpc/subscription_registry'
+require_relative 'dispatch/dispatcher'
 require_relative 'protocol/validator'
-require 'time'
 
 module Broker
   class Server
-    def initialize(host:, port:, max_frame:, send_queue_size:, dispatcher:, store: nil)
+    def initialize(host:, port:, worker_count:, dispatch_queue_size:, subscriber_buffer_size:, store:,
+                   logger: Logger.new($stdout))
       @host = host
+      @bind_host = prefer_ipv4_host(host)
       @port = port
-      @max_frame = max_frame
-      @send_q = send_queue_size
-      @dispatcher = dispatcher
-      @store = store
-      @registry = Routing::Registry.new
-      @dispatcher.registry = @registry
-      @srv = TCPServer.new(@host, @port)
-      @port = @srv.addr[1]
-      trap('INT') { stop }
-      trap('TERM') { stop }
+      @logger = logger
+      @registry = Broker::Grpc::SubscriptionRegistry.new
+      @dispatcher = Broker::Dispatch::Dispatcher.new(registry: @registry,
+                                                     workers: worker_count,
+                                                     queue_size: dispatch_queue_size,
+                                                     logger: @logger)
+      @service = Broker::Grpc::Service.new(store: store,
+                                           dispatcher: @dispatcher,
+                                           registry: @registry,
+                                           validator: method(:validate_record),
+                                           subscriber_buffer_size: subscriber_buffer_size,
+                                           logger: @logger)
+      @server = GRPC::RpcServer.new(pool_size: worker_count, max_waiting_requests: dispatch_queue_size)
+      @server.add_http2_port("#{@bind_host}:#{@port}", :this_port_is_insecure)
+      @server.handle(@service)
     end
 
     def start
-      puts "Listening on #{@host}:#{@srv.addr[1]}"
-      loop do
-        sock = @srv.accept
-        puts "ACCEPT #{sock.peeraddr[2]}:#{sock.peeraddr[1]}"
-        Thread.new { handle(sock) }
-      end
-    rescue IOError, SystemCallError
-      # shutdown
-    end
-
-    def handle(sock)
-      conn = Connection.new(sock, send_queue_size: @send_q)
-      @registry.add(conn)
-      while (raw = conn.read_frame(max: @max_frame))
-        obj = begin
-          Json::LOAD.call(raw)
-        rescue StandardError
-          nil
-        end
-        if obj.nil?
-          conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'invalid JSON' })
-          next
-        end
-        case obj['op']
-        when 'SUBSCRIBE'
-          topic = obj['topic'].to_s.strip
-          from = obj['from']
-          if topic.empty?
-            conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'topic required' })
-            @store.create_topic(topic) if @store.respond_to?(:create_topic)
-
-          else
-            @registry.update(conn, [topic])
-            conn.send_json!({ 'op' => 'SUBSCRIBED', 'topic' => topic })
-            puts "SUBSCRIBE topic=#{topic}"
-            if @store.respond_to?(:replay_topic)
-              @store.replay_topic(topic, from_id: from || '0') do |id, msg|
-                payload = {
-                  'op' => 'DELIVER',
-                  'deliveryId' => @dispatcher.next_delivery_id,
-                  'topic' => topic,
-                  'message' => msg['payload'],
-                  'timestamp' => msg['timestamp'],
-                  'storeId' => id
-                }
-                conn.send_json!(payload)
-              end
-            elsif @store.respond_to?(:messages_for)
-              @store.messages_for(topic)&.each do |msg|
-                conn.send_json!({ 'op' => 'DELIVER', 'topic' => topic, 'message' => msg['payload'],
-                                  'timestamp' => msg['timestamp'] })
-              end
-            end
-          end
-
-        when 'PING'
-          conn.send_json!({ 'op' => 'PONG' })
-        when 'PUBLISH'
-          topic = obj['topic'].to_s.strip
-          payload = obj['message']
-          msg = { 'topic' => topic, 'payload' => payload, 'timestamp' => Time.now.utc.iso8601 }
-          if Broker::Protocol::Validator.valid?(msg)
-            puts "PUBLISH topic=#{topic} payload=#{payload.inspect}"
-            @dispatcher.enqueue(msg)
-          else
-            conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'invalid message' })
-          end
-        else
-          conn.send_json!({ 'op' => 'ERROR', 'code' => 'BadRequest', 'detail' => 'unknown op' })
-        end
-      end
-    rescue StandardError => e
-      warn "conn_error: #{e.message}"
+      log_host = @bind_host == @host ? @host : "#{@host}(#{@bind_host})"
+      @logger.info("broker_grpc_listening host=#{log_host} port=#{@port}")
+      trap_signals
+      @server.run_till_terminated
     ensure
-      @registry.remove(conn) if conn
-      conn&.close
+      stop
     end
 
     def stop
-      puts 'Shutting down…'
-      s = @registry.stats
-      puts "connections=#{s[:connections]} subscribers=#{s[:subscribers]}"
-      begin
-        @srv.close
-      rescue StandardError
-        nil
+      @logger.info('broker_grpc_stopping')
+      @server&.stop
+      @dispatcher&.shutdown
+    end
+
+    private
+
+    def prefer_ipv4_host(host)
+      return host if host.nil?
+
+      string_host = host.to_s.strip
+      return string_host if string_host.empty?
+
+      return string_host if string_host =~ /\A\d{1,3}(?:\.\d{1,3}){3}\z/
+
+      Addrinfo.foreach(string_host, nil, Socket::AF_INET, Socket::SOCK_STREAM) do |info|
+        return info.ip_address if info.ip_address
       end
-      exit
+
+      string_host
+    rescue SocketError
+      string_host
+    end
+
+    def trap_signals
+      %w[INT TERM].each do |sig|
+        Signal.trap(sig) { stop }
+      rescue ArgumentError
+        # Signal isn't supported
+      end
+    end
+
+    def validate_record(record)
+      Broker::Protocol::Validator.valid?(record)
     end
   end
 end
