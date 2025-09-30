@@ -30,7 +30,7 @@ namespace Subscriber.Grpc
                 var endpoint = $"http://{_address}:{_port}";
                 _channel = GrpcChannel.ForAddress(endpoint);
                 _client = new Broker.BrokerClient(_channel);
-                Console.WriteLine($"Connected to broker at {endpoint}");
+                Console.WriteLine($"Initialized connection to broker at {endpoint}");
             }
             catch (Exception ex)
             {
@@ -49,6 +49,7 @@ namespace Subscriber.Grpc
             }
 
             subject = subject.Trim();
+
             if (string.IsNullOrEmpty(subject))
             {
                 Console.WriteLine("Subject cannot be empty.");
@@ -75,19 +76,23 @@ namespace Subscriber.Grpc
                 var call = _client.Subscribe(subscription, cancellationToken: entry.CancellationTokenSource.Token);
                 entry.Call = call;
 
-                if(_client == null)
+                var receiver = new MessageReceiver(_messageHandler, _autoAck, _client, _consumerGroup);
+                entry.Task = Task.Run(async () =>
                 {
-                    Console.WriteLine("You are not connected to the broker");
-                    return;
-                }
-                if(call == null)
-                {
-                    Console.WriteLine("You are not connected to the broker");
-                    return;
-                }
-              
-                var receiver = new MessageReceiver(_messageHandler, _autoAck,_client,_consumerGroup);
-                entry.Task = Task.Run(async () => await receiver.ReceiveMessagesAsync(subject, call, entry.CancellationTokenSource.Token));
+                    try
+                    {
+                        await receiver.ReceiveMessagesAsync(subject, call, entry.CancellationTokenSource.Token);
+                    }
+                    finally
+                    {
+                        
+                        if (!entry.CancellationTokenSource.Token.IsCancellationRequested)
+                        {
+                            _subscriptionManager.RemoveSubscription(subject);
+                            Console.WriteLine($"Auto-unsubscribed from \"{subject}\" due to connection loss");
+                        }
+                    }
+                });
 
                 Console.WriteLine($"Subscribed to \"{subject}\"");
             }
