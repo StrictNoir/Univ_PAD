@@ -7,4 +7,14 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Grpc.Tools" Version="2.62.0" />
+      <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+      <PackageReference Include="Google.Protobuf" Version="3.32.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="..\..\broker-ruby\photo\broker.proto" GrpcServices="Client" />
+    </ItemGroup>
+
 </Project>
