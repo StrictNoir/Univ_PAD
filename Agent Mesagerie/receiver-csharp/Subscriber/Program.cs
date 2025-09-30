@@ -1,5 +1,4 @@
 ﻿using Subscriber;
-using System.Net;
 
 class Program
 {
