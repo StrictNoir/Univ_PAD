@@ -1,11 +1,27 @@
+<<<<<<< HEAD
 ﻿using Subscriber;
+=======
+﻿using DotNetEnv;
+using Subscriber;
+using System.Net;
+>>>>>>> 46847475ea09a5977b8d53aacd2963e2c317857e
 
 class Program
 {
-    static string ipAddress = "127.0.0.1";
-    static int port = 5000;
+
+    
     static async Task Main(string[] args)
     {
+        Env.Load();
+        string ipAddress = Environment.GetEnvironmentVariable("BROKER_IP") ?? "127.0.0.1";
+        string portStr = Environment.GetEnvironmentVariable("BROKER_PORT") ?? "5001";
+
+        if (!int.TryParse(portStr, out int port))
+        {
+            Console.WriteLine("Invalid port in .env, using default 5001");
+            port = 5001;
+        }
+
         var subscriber = new SubscriberSocket(ipAddress,port);
 
 
