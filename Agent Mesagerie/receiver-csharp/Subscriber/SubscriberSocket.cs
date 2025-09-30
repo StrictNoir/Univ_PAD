@@ -11,23 +11,35 @@ namespace Subscriber
     {
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
+        private string _address;
+        private int _port;
+        private FrameWriter? _frameWriter;
+        private FrameReader? _frameReader;
+        private MessageHandler _messageHandler;
+
         public bool IsConnected => _tcpClient.Connected;
 
-        public SubscriberSocket()
+        public SubscriberSocket(string address, int port)
         {
             _tcpClient = new TcpClient();
+            _address = address;
+            _port = port;
+            _messageHandler = new MessageHandler(_address, _port);
         }
 
-        public async Task ConnectAsync(IPAddress address, int port)
+        public async Task ConnectAsync()
         {
             try
             {
-                await _tcpClient.ConnectAsync(address, port);
+                var ipAddress = IPAddress.Parse(_address);
+                await _tcpClient.ConnectAsync(ipAddress, _port);
                 _stream = _tcpClient.GetStream();
-                Console.WriteLine("Successfully connected to the broker.");
 
-           
-                _ = Task.Run(ReceiveFramesAsync);
+                _frameWriter = new FrameWriter(_stream);
+                _frameReader = new FrameReader(_stream, _messageHandler);
+
+                Console.WriteLine("Successfully connected to the broker.");
+                _ = Task.Run(() => _frameReader.ReceiveFramesAsync());
             }
             catch (Exception ex)
             {
@@ -35,13 +47,15 @@ namespace Subscriber
             }
         }
 
-        public async Task SubscribeAsync(string topic, string from)
+        public async Task SubscribeAsync(string topic)
         {
-            if (_stream == null)
+            if (_frameWriter == null)
             {
                 Console.WriteLine("You need to connect to the broker first.");
                 return;
             }
+
+            string? from = CheckpointCreator.LoadCheckpoint(_address, _port, topic);
 
             var frame = new
             {
@@ -50,91 +64,23 @@ namespace Subscriber
                 from
             };
 
-            await WriteFrameAsync(JsonSerializer.Serialize(frame));
+            await _frameWriter.WriteFrameAsync(JsonSerializer.Serialize(frame));
             Console.WriteLine($"Sent SUBSCRIBE for: {topic}");
         }
 
         public async Task PingAsync()
         {
-            if (_stream == null) return;
+            if (_frameWriter == null) return;
+
             var frame = new { op = "PING" };
-            await WriteFrameAsync(JsonSerializer.Serialize(frame));
+            await _frameWriter.WriteFrameAsync(JsonSerializer.Serialize(frame));
             Console.WriteLine("Sent PING");
-        }
-
-        private async Task WriteFrameAsync(string message)
-        {
-            if (_stream == null) return;
-
-            byte[] payload = Encoding.UTF8.GetBytes(message);
-            byte[] lengthPrefix = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(payload.Length));
-
-            await _stream.WriteAsync(lengthPrefix, 0, lengthPrefix.Length);
-            await _stream.WriteAsync(payload, 0, payload.Length);
-            await _stream.FlushAsync();
-        }
-
-        private async Task ReceiveFramesAsync()
-        {
-            if (_stream == null) return;
-
-            try
-            {
-                while (true)
-                {
-                    
-                    byte[] lengthBuffer = new byte[4];
-                    // citeste mai intai lungimea mesajului care va veni
-                    int read = await ReadExactAsync(_stream, lengthBuffer, lengthBuffer.Length);
-                    if (read == 0)
-                    {
-                        Console.WriteLine("Connection closed by broker.");
-                        break;
-                    }
-                    // numarul de byti necesari pentru mesaj
-                    int frameLength = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(lengthBuffer, 0));
-                    if (frameLength <= 0) continue;
-
-                    
-                    byte[] payload = new byte[frameLength];
-                    // citeste payloadul
-                    read = await ReadExactAsync(_stream, payload, frameLength);
-                    if (read == 0)
-                    {
-                        Console.WriteLine("Connection closed by broker.");
-                        break;
-                    }
-
-                    string message = Encoding.UTF8.GetString(payload);
-                    Console.WriteLine($"Received: {message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while receiving frames: {ex.Message}");
-            }
-            finally
-            {
-                Close();
-            }
-        }
-
-        private static async Task<int> ReadExactAsync(NetworkStream stream, byte[] buffer, int size)
-        {
-            int offset = 0;
-            while (offset < size)
-            {
-                int read = await stream.ReadAsync(buffer, offset, size - offset);
-                if (read == 0) return 0; 
-                offset += read;
-            }
-            return offset;
         }
 
         public void Close()
         {
-            try { _stream?.Close(); } catch { }
-            try { _tcpClient?.Close(); } catch { }
+            _stream?.Close();
+            _tcpClient?.Close();
         }
     }
 }
