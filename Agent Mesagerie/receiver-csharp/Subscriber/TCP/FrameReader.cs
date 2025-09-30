@@ -1,10 +1,8 @@
-﻿
-
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace Subscriber
+namespace Subscriber.TCP
 {
     public class FrameReader
     {

@@ -1,5 +1,4 @@
-﻿
-namespace Subscriber.Models
+﻿namespace Subscriber.TCP.Models
 {
     public class DeliveryMessage
     {

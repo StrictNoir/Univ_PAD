@@ -1,9 +1,7 @@
-﻿
-
-using Subscriber.Models;
+﻿using Subscriber.TCP.Models;
 using System.Text.Json;
 
-namespace Subscriber
+namespace Subscriber.TCP
 {
     public class MessageHandler
     {

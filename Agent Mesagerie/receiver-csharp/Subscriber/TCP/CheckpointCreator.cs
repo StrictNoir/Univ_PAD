@@ -1,6 +1,4 @@
-﻿
-
-namespace Subscriber
+﻿namespace Subscriber.TCP
 {
     public  static class CheckpointCreator
     {
