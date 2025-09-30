@@ -14,7 +14,7 @@ namespace Subscriber.Grpc
         private readonly string _consumerGroup;
         private readonly bool _autoAck;
 
-        public GrpcSubscriberClient(string address, int port, string consumerGroup = "", bool autoAck = false)
+        public GrpcSubscriberClient(string address, int port, string consumerGroup = "", bool autoAck = true)
         {
             _address = address;
             _port = port;
@@ -35,6 +35,7 @@ namespace Subscriber.Grpc
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to connect to broker: {ex.Message}");
+                UnsubscribeAll();
                 throw;
             }
         }
@@ -44,6 +45,7 @@ namespace Subscriber.Grpc
             {
                 Console.WriteLine("You need to connect to the broker first.");
                 await Task.CompletedTask;
+                return;
             }
 
             subject = subject.Trim();
@@ -51,12 +53,14 @@ namespace Subscriber.Grpc
             {
                 Console.WriteLine("Subject cannot be empty.");
                 await Task.CompletedTask;
+                return;
             }
 
             if (_subscriptionManager.HasSubscription(subject))
             {
                 Console.WriteLine($"Already subscribed to {subject}");
                 await Task.CompletedTask;
+                return;
             }
 
             var subscription = new Subscription
@@ -68,12 +72,22 @@ namespace Subscriber.Grpc
             try
             {
                 var entry = _subscriptionManager.CreateSubscription(subject);
-                var call = _client?.Subscribe(subscription, cancellationToken: entry.CancellationTokenSource.Token);
+                var call = _client.Subscribe(subscription, cancellationToken: entry.CancellationTokenSource.Token);
                 entry.Call = call;
 
-                // Start receiving messages in a background task
-                var receiver = new MessageReceiver(_messageHandler, _autoAck,_client!,_consumerGroup);
-                entry.Task = Task.Run(async () => await receiver.ReceiveMessagesAsync(subject, call!, entry.CancellationTokenSource.Token));
+                if(_client == null)
+                {
+                    Console.WriteLine("You are not connected to the broker");
+                    return;
+                }
+                if(call == null)
+                {
+                    Console.WriteLine("You are not connected to the broker");
+                    return;
+                }
+              
+                var receiver = new MessageReceiver(_messageHandler, _autoAck,_client,_consumerGroup);
+                entry.Task = Task.Run(async () => await receiver.ReceiveMessagesAsync(subject, call, entry.CancellationTokenSource.Token));
 
                 Console.WriteLine($"Subscribed to \"{subject}\"");
             }

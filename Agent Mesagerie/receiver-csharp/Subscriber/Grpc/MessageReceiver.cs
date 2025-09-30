@@ -9,6 +9,7 @@ namespace Subscriber.Grpc
         private readonly bool _autoAck;
         private readonly Broker.BrokerClient _brokerClient;
         private readonly string _consumerGroup;
+        
 
         public MessageReceiver(
              MessageHandler messageHandler,
