@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+<<<<<<< HEAD
   <ItemGroup>
 <<<<<<< HEAD
     <None Remove="Protos\receiver.proto" />
@@ -28,4 +29,6 @@
 >>>>>>> 46847475ea09a5977b8d53aacd2963e2c317857e
   </ItemGroup>
 
+=======
+>>>>>>> parent of f05eaae (feat: Refactored the code, separating responsabilites to other classes)
 </Project>

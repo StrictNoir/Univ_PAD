@@ -1,10 +1,14 @@
 <<<<<<< HEAD
 ﻿using Subscriber;
+<<<<<<< HEAD
 =======
 ﻿using DotNetEnv;
 using Subscriber;
 using System.Net;
 >>>>>>> 46847475ea09a5977b8d53aacd2963e2c317857e
+=======
+using System.Net;
+>>>>>>> parent of f05eaae (feat: Refactored the code, separating responsabilites to other classes)
 
 class Program
 {
