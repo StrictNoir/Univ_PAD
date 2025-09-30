@@ -72,7 +72,7 @@ namespace Subscriber.Grpc
                 entry.Call = call;
 
                 // Start receiving messages in a background task
-                var receiver = new MessageReceiver(_messageHandler, _autoAck);
+                var receiver = new MessageReceiver(_messageHandler, _autoAck,_client!,_consumerGroup);
                 entry.Task = Task.Run(async () => await receiver.ReceiveMessagesAsync(subject, call!, entry.CancellationTokenSource.Token));
 
                 Console.WriteLine($"Subscribed to \"{subject}\"");
