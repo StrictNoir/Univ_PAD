@@ -1,0 +1,39 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "Subscriber";
+
+package Subscvriber.v1;
+
+
+
+
+// Broker response
+message Envelope {
+  string subject = 1;
+  bytes payload = 2;
+  map<string, string> headers = 3;
+  string message_id = 4;
+  int64 timestamp_ms = 5;
+}
+
+
+// Receiver subscription request
+message Subscription {
+  string subject = 1;
+  string consumer_group = 2;
+}
+
+message AckRequest {
+  string subject = 1;
+  string message_id = 2;
+  string consumer_group = 3;
+}
+
+message AckReply {
+  bool acknowledged = 1;
+}
+
+service Broker {
+  rpc Subscribe(Subscription) returns (stream Envelope);
+  rpc Ack(AckRequest) returns (AckReply);
+}
