@@ -63,7 +63,7 @@ namespace Subscriber
             {
                 op = "SUBSCRIBE",
                 topic,
-                from 
+                from="1" 
             };
 
             await WriteFrameAsync(JsonSerializer.Serialize(frame));

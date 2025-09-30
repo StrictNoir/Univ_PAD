@@ -3,8 +3,8 @@ using System.Net;
 
 class Program
 {
-    static string ipAddress = "127.0.0.1";
-    static int port = 5000;
+    static string ipAddress = "192.168.170.244";
+    static int port = 5001;
     static async Task Main(string[] args)
     {
         var subscriber = new SubscriberSocket(ipAddress,port);
