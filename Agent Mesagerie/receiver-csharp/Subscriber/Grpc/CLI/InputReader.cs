@@ -2,75 +2,120 @@
 {
     public class InputReader
     {
+        private const int DefaultPort = 50051;
+
         public SubscriberConfiguration? ReadInitialConfiguration()
         {
-            // Ask for host
-            Console.Write("host> ");
-            var host = Console.ReadLine()?.Trim();
-            if (IsExitCommand(host) || string.IsNullOrEmpty(host))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
+            var host = ReadHost();
+            if (host == null) return null;
 
-            // Ask for port
-            Console.Write("port> ");
-            var portInput = Console.ReadLine()?.Trim();
-            if (IsExitCommand(portInput) || string.IsNullOrEmpty(portInput))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
+            var port = ReadPort();
+            if (port == null) return null;
 
-            if (!int.TryParse(portInput, out int port))
-            {
-                Console.WriteLine("Invalid port. Using default 50051.");
-                port = 50051;
-            }
+            var subjects = ReadSubjects();
+            if (subjects == null) return null;
 
-            // Ask for subjects
-            Console.Write("subjects (comma separated)> ");
-            var subjectsInput = Console.ReadLine();
-            if (IsExitCommand(subjectsInput))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
-            var subjects = ParseSubjects(subjectsInput);
-
-            // Ask for consumer group
-            Console.Write("consumer group (optional)> ");
-            var consumerGroup = Console.ReadLine();
-            if (IsExitCommand(consumerGroup))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
-
-            
-            bool autoAck = true;
+            var consumerGroup = ReadConsumerGroup();
+            if (consumerGroup == null) return null;
 
             return new SubscriberConfiguration
             {
-                Host = host!,
-                Port = port,
-                ConsumerGroup = consumerGroup ?? "",
-                AutoAck = autoAck,
+                Host = host,
+                Port = port.Value,
+                ConsumerGroup = consumerGroup,
+                AutoAck = true,
                 InitialSubjects = subjects
             };
         }
 
+        private string? ReadHost()
+        {
+            Console.Write("host> ");
+            var input = Console.ReadLine()?.Trim();
+
+            if (IsExitCommand(input))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(input))
+            {
+                Console.WriteLine("Host cannot be empty.");
+                return null;
+            }
+
+            return input;
+        }
+
+        private int? ReadPort()
+        {
+            Console.Write("port> ");
+            var input = Console.ReadLine()?.Trim();
+
+            if (IsExitCommand(input))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(input) || !int.TryParse(input, out int port))
+            {
+                Console.WriteLine($"Invalid port. Using default {DefaultPort}.");
+                return DefaultPort;
+            }
+
+            if (port < 1 || port > 65535)
+            {
+                Console.WriteLine($"Port out of range. Using default {DefaultPort}.");
+                return DefaultPort;
+            }
+
+            return port;
+        }
+
+        private List<string>? ReadSubjects()
+        {
+            Console.Write("subjects (comma separated)> ");
+            var input = Console.ReadLine();
+
+            if (IsExitCommand(input))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+
+            return ParseSubjects(input);
+        }
+
+        private string? ReadConsumerGroup()
+        {
+            Console.Write("consumer group (optional)> ");
+            var input = Console.ReadLine();
+
+            if (IsExitCommand(input))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+
+            return input?.Trim() ?? "";
+        }
+
         private List<string> ParseSubjects(string? input)
         {
-            return (input ?? "")
-                .Replace(',', ' ')
-                .Split([' '], StringSplitOptions.RemoveEmptyEntries)
+            if (string.IsNullOrWhiteSpace(input))
+                return new List<string>();
+
+            return input
+                .Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
                 .Distinct()
                 .ToList();
         }
 
-        public static bool IsExitCommand(string? input)
+        private static bool IsExitCommand(string? input)
         {
             return input?.Trim().Equals("exit", StringComparison.OrdinalIgnoreCase) ?? false;
         }
