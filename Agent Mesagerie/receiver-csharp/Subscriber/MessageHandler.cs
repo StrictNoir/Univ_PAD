@@ -1,5 +1,6 @@
 ﻿
 
+using Subscriber.Models;
 using System.Text.Json;
 
 namespace Subscriber

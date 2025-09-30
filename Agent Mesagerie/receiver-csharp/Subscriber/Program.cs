@@ -1,59 +1,39 @@
 ﻿using Subscriber;
-using System.Net;
+
 
 class Program
 {
+    static string ipAddress = "127.0.0.1";
+    static int port = 5000;
+
     static async Task Main(string[] args)
     {
-        var subscriber = new SubscriberSocket();
-        await subscriber.ConnectAsync(IPAddress.Loopback, 5000);
+        var subscriber = new SubscriberSocket(ipAddress, port);
+        await subscriber.ConnectAsync();
 
         if (subscriber.IsConnected)
         {
             Console.WriteLine("Subscriber connected. Type commands: (chat.* to subscrie to a topic)");
+            while (true) { 
 
-            while (true)
-            {
-                string input = Console.ReadLine()?.Trim() ?? string.Empty;
+              string input = Console.ReadLine()?.Trim() ?? string.Empty;
 
-                if (string.IsNullOrEmpty(input)) continue;
-
-                if (input.StartsWith("chat"))
-                {
-                    string checkpoint = RequestRecoverCheckpoint();
-                    await subscriber.SubscribeAsync(input, checkpoint);
-                    Console.WriteLine($"Subscribed to topic {input} from checkpoint {checkpoint}");
-                }
+              if (string.IsNullOrEmpty(input)) continue; 
+                if (input.StartsWith("chat")) {
+                   await subscriber.SubscribeAsync(input); 
+                } 
                 else if (input.ToLower() == "ping")
                 {
-                    await subscriber.PingAsync();
-                }
-                else if (input.ToLower() == "exit")
-                {
-                    break;
-                }
-                else
-                {
-                    Console.WriteLine("Unknown command. Type 'ping', a topic like 'chat.*', or 'exit'");
-                }
+                    await subscriber.PingAsync(); 
+                } 
+                else if (input.ToLower() == "exit") { break; } 
+                else {
+
+                    Console.WriteLine("Unknown command. Type 'ping', a topic like 'chat.*', or 'exit'"); 
+                } 
+            
+            
             }
         }
     }
-
-    private static string RequestRecoverCheckpoint()
-    {
-        Console.WriteLine("Enter a recovery checkpoint: (ex: 42)");
-        string checkpoint = Console.ReadLine() ?? string.Empty;
-        bool result = int.TryParse(checkpoint, out int parsedValue);
-
-        while(!result || string.IsNullOrEmpty(checkpoint))
-        {
-            Console.WriteLine("Try to enter an int value.");
-            checkpoint = Console.ReadLine() ?? string.Empty;
-            result = int.TryParse(checkpoint, out parsedValue);
-        }
-
-        return checkpoint;
-    }
-
 }
