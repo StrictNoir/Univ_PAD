@@ -1,13 +1,34 @@
-﻿
-namespace Subscriber.Grpc.CLI
+﻿namespace Subscriber.Grpc.CLI
 {
     public class InputReader
     {
-        public SubscriberConfiguration? ReadInitialConfigurationAsync()
+        public SubscriberConfiguration? ReadInitialConfiguration()
         {
-            Console.WriteLine("Type \"exit\" at any prompt to quit.");
+            // Ask for host
+            Console.Write("host> ");
+            var host = Console.ReadLine()?.Trim();
+            if (IsExitCommand(host) || string.IsNullOrEmpty(host))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
 
-            // Get subjects
+            // Ask for port
+            Console.Write("port> ");
+            var portInput = Console.ReadLine()?.Trim();
+            if (IsExitCommand(portInput) || string.IsNullOrEmpty(portInput))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+
+            if (!int.TryParse(portInput, out int port))
+            {
+                Console.WriteLine("Invalid port. Using default 50051.");
+                port = 50051;
+            }
+
+            // Ask for subjects
             Console.Write("subjects (comma separated)> ");
             var subjectsInput = Console.ReadLine();
             if (IsExitCommand(subjectsInput))
@@ -15,10 +36,9 @@ namespace Subscriber.Grpc.CLI
                 Console.WriteLine("Goodbye!");
                 return null;
             }
-
             var subjects = ParseSubjects(subjectsInput);
 
-            // Get consumer group
+            // Ask for consumer group
             Console.Write("consumer group (optional)> ");
             var consumerGroup = Console.ReadLine();
             if (IsExitCommand(consumerGroup))
@@ -27,25 +47,12 @@ namespace Subscriber.Grpc.CLI
                 return null;
             }
 
-            // Get auto-ack preference
-            //Console.Write("auto-ack? [y/N]> ");
-            //var autoAckInput = Console.ReadLine();
-            //if (IsExitCommand(autoAckInput))
-            //{
-            //    Console.WriteLine("Goodbye!");
-            //    return null;
-            //}
-
-            //bool autoAck = autoAckInput?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) ?? false;
+            
             bool autoAck = true;
-
-            var args = Environment.GetCommandLineArgs();
-            var host = args.Length > 1 ? args[1] : "localhost";
-            var port = args.Length > 2 && int.TryParse(args[2], out int p) ? p : 50051;
 
             return new SubscriberConfiguration
             {
-                Host = host,
+                Host = host!,
                 Port = port,
                 ConsumerGroup = consumerGroup ?? "",
                 AutoAck = autoAck,
