@@ -21,7 +21,7 @@ namespace Subscriber.Grpc.CLI
                 return;
             }
 
-            var config = await _inputReader.ReadInitialConfigurationAsync();
+            var config = _inputReader.ReadInitialConfigurationAsync();
             if (config == null)
             {
                 return;
@@ -47,7 +47,7 @@ namespace Subscriber.Grpc.CLI
         {
             if (_args.Length < 2)
             {
-                Console.WriteLine($"usage: {Environment.GetCommandLineArgs()[0]} HOST PORT");
+                Console.WriteLine($"usage: dotnet run --project {AppDomain.CurrentDomain.FriendlyName} HOST PORT");
                 return false;
             }
 

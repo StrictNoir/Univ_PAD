@@ -3,7 +3,7 @@ namespace Subscriber.Grpc.CLI
 {
     public class InputReader
     {
-        public async Task<SubscriberConfiguration?> ReadInitialConfigurationAsync()
+        public SubscriberConfiguration? ReadInitialConfigurationAsync()
         {
             Console.WriteLine("Type \"exit\" at any prompt to quit.");
 
@@ -28,15 +28,16 @@ namespace Subscriber.Grpc.CLI
             }
 
             // Get auto-ack preference
-            Console.Write("auto-ack? [y/N]> ");
-            var autoAckInput = Console.ReadLine();
-            if (IsExitCommand(autoAckInput))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
+            //Console.Write("auto-ack? [y/N]> ");
+            //var autoAckInput = Console.ReadLine();
+            //if (IsExitCommand(autoAckInput))
+            //{
+            //    Console.WriteLine("Goodbye!");
+            //    return null;
+            //}
 
-            bool autoAck = autoAckInput?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) ?? false;
+            //bool autoAck = autoAckInput?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool autoAck = true;
 
             var args = Environment.GetCommandLineArgs();
             var host = args.Length > 1 ? args[1] : "localhost";
