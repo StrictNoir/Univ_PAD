@@ -1,12 +1,23 @@
-﻿using Subscriber;
+﻿using DotNetEnv;
+using Subscriber;
 using System.Net;
 
 class Program
 {
-    static string ipAddress = "192.168.170.244";
-    static int port = 5001;
+
+    
     static async Task Main(string[] args)
     {
+        Env.Load();
+        string ipAddress = Environment.GetEnvironmentVariable("BROKER_IP") ?? "127.0.0.1";
+        string portStr = Environment.GetEnvironmentVariable("BROKER_PORT") ?? "5001";
+
+        if (!int.TryParse(portStr, out int port))
+        {
+            Console.WriteLine("Invalid port in .env, using default 5001");
+            port = 5001;
+        }
+
         var subscriber = new SubscriberSocket(ipAddress,port);
 
 

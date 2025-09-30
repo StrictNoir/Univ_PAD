@@ -1,4 +1,6 @@
 # Visual Studio specific
+
+.env
 .vs/
 *.suo
 *.user
