@@ -17,6 +17,12 @@ message Envelope {
 }
 
 
+message PublishAck {
+  string message_id = 1;
+  bool accepted = 2;
+  string detail = 3;
+}
+
 // Receiver subscription request
 message Subscription {
   string subject = 1;
@@ -25,7 +31,6 @@ message Subscription {
 message AckRequest {
   string subject = 1;
   string message_id = 2;
-  string consumer_group = 3;
 }
 
 message AckReply {
@@ -33,6 +38,7 @@ message AckReply {
 }
 
 service Broker {
+ rpc Publish(Envelope) returns (PublishAck);
   rpc Subscribe(Subscription) returns (stream Envelope);
   rpc Ack(AckRequest) returns (AckReply);
 }
