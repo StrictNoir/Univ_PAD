@@ -20,7 +20,6 @@ message Envelope {
 // Receiver subscription request
 message Subscription {
   string subject = 1;
-  string consumer_group = 2;
 }
 
 message AckRequest {
