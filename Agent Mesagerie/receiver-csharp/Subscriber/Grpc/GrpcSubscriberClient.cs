@@ -11,14 +11,12 @@ namespace Subscriber.Grpc
         private Broker.BrokerClient? _client;
         private readonly SubscriptionManager _subscriptionManager;
         private readonly MessageHandler _messageHandler;
-        private readonly string _consumerGroup;
         private readonly bool _autoAck;
 
-        public GrpcSubscriberClient(string address, int port, string consumerGroup = "", bool autoAck = true)
+        public GrpcSubscriberClient(string address, int port, bool autoAck = true)
         {
             _address = address;
             _port = port;
-            _consumerGroup = consumerGroup;
             _autoAck = autoAck;
             _messageHandler = new MessageHandler();
             _subscriptionManager = new SubscriptionManager();
@@ -66,8 +64,7 @@ namespace Subscriber.Grpc
 
             var subscription = new Subscription
             {
-                Subject = subject,
-                ConsumerGroup = _consumerGroup
+                Subject = subject
             };
 
             try
@@ -76,7 +73,7 @@ namespace Subscriber.Grpc
                 var call = _client.Subscribe(subscription, cancellationToken: entry.CancellationTokenSource.Token);
                 entry.Call = call;
 
-                var receiver = new MessageReceiver(_messageHandler, _autoAck, _client, _consumerGroup);
+                var receiver = new MessageReceiver(_messageHandler, _autoAck, _client);
                 entry.Task = Task.Run(async () =>
                 {
                     try

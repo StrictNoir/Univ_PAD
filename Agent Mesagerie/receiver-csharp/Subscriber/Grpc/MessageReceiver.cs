@@ -8,19 +8,18 @@ namespace Subscriber.Grpc
         private readonly MessageHandler _messageHandler;
         private readonly bool _autoAck;
         private readonly Broker.BrokerClient _brokerClient;
-        private readonly string _consumerGroup;
+   
         
 
         public MessageReceiver(
              MessageHandler messageHandler,
              bool autoAck,
-             Broker.BrokerClient brokerClient,
-             string consumerGroup = "")
+             Broker.BrokerClient brokerClient)
         {
             _messageHandler = messageHandler;
             _autoAck = autoAck;
             _brokerClient = brokerClient;
-            _consumerGroup = consumerGroup;
+        
         }
         public async Task ReceiveMessagesAsync(string subject, AsyncServerStreamingCall<Envelope> call, CancellationToken cancellationToken)
         {
@@ -61,7 +60,7 @@ namespace Subscriber.Grpc
                 {
                     Subject = subject,
                     MessageId = messageId,
-                    ConsumerGroup = _consumerGroup
+    
                 });
 
                 Console.WriteLine($"  acked: {ackReply.Acknowledged} (message_id={messageId})");
