@@ -4,4 +4,5 @@ port: 5001
 worker_count: 4
 dispatch_queue_size: 10000
 subscriber_buffer: 100
-
+redis_url: redis://127.0.0.1:6379/0
+redis_stream_prefix: "stream:messages:"

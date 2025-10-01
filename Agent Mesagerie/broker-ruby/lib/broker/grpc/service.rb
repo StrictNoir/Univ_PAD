@@ -52,7 +52,6 @@ module Broker
         end
 
         stream = SubscriberStream.new(subject: subject,
-                                      consumer_group: subscription.consumer_group.to_s,
                                       buffer_size: @subscriber_buffer_size,
                                       logger: @logger)
         @registry.register(subject, stream)
