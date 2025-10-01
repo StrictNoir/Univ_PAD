@@ -51,12 +51,19 @@ module Broker
                                                        'subject is required')
         end
 
+        subscriber_id = subscription.subscriber_id.to_s.strip
+        if subscriber_id.empty?
+          raise ::GRPC::BadStatus.new_status_exception(::GRPC::Core::StatusCodes::INVALID_ARGUMENT,
+                                                       'subscriber_id is required')
+        end
+
         stream = SubscriberStream.new(subject: subject,
+                                      subscriber_id: subscriber_id,
                                       buffer_size: @subscriber_buffer_size,
                                       logger: @logger)
         @registry.register(subject, stream)
-        @logger.info("subscriber_connected subject=#{subject} peer=#{peer_info(call)}")
-        enqueue_pending(subject, stream)
+        @logger.info("subscriber_connected subject=#{subject} subscriber_id=#{subscriber_id} peer=#{peer_info(call)}")
+        enqueue_pending(subject, subscriber_id, stream)
         enum = stream.enumerator
         cancel_monitor = start_cancel_monitor(call, stream)
 
@@ -70,7 +77,7 @@ module Broker
           cancel_monitor&.kill
           @registry.unregister(subject, stream)
           stream.close
-          @logger.info("subscriber_disconnected subject=#{subject} peer=#{peer_info(call)}")
+          @logger.info("subscriber_disconnected subject=#{subject} subscriber_id=#{subscriber_id} peer=#{peer_info(call)}")
         end
       rescue GRPC::BadStatus => e
         raise e
@@ -82,9 +89,10 @@ module Broker
       def ack(request, _call)
         subject = request.subject.to_s.strip
         message_id = request.message_id.to_s.strip
-        if subject.empty? || message_id.empty?
+        subscriber_id = request.subscriber_id.to_s.strip
+        if subject.empty? || message_id.empty? || subscriber_id.empty?
           raise ::GRPC::BadStatus.new_status_exception(::GRPC::Core::StatusCodes::INVALID_ARGUMENT,
-                                                       'subject and message_id are required')
+                                                       'subject, message_id, and subscriber_id are required')
         end
 
         unless @store.respond_to?(:ack!)
@@ -92,13 +100,13 @@ module Broker
                                                        'ack not supported by store')
         end
 
-        acknowledged = @store.ack!(subject, message_id)
-        @logger.info("ack subject=#{subject} message_id=#{message_id} acknowledged=#{acknowledged}")
+        acknowledged = @store.ack!(subject, message_id, subscriber_id)
+        @logger.info("ack subject=#{subject} subscriber_id=#{subscriber_id} message_id=#{message_id} acknowledged=#{acknowledged}")
         ::Broker::Proto::AckReply.new(acknowledged: acknowledged)
       rescue GRPC::BadStatus => e
         raise e
       rescue StandardError => e
-        @logger.error("ack_failed subject=#{request&.subject} message_id=#{request&.message_id} error=#{e.message}")
+        @logger.error("ack_failed subject=#{request&.subject} subscriber_id=#{request&.subscriber_id} message_id=#{request&.message_id} error=#{e.message}")
         raise ::GRPC::BadStatus.new_status_exception(::GRPC::Core::StatusCodes::INTERNAL, 'internal server error')
       end
 
@@ -118,10 +126,10 @@ module Broker
         (Time.now.utc.to_f * 1000).to_i
       end
 
-      def enqueue_pending(subject, stream)
+      def enqueue_pending(subject, subscriber_id, stream)
         return unless @store.respond_to?(:pending_for)
 
-        Array(@store.pending_for(subject)).each do |record|
+        Array(@store.pending_for(subject, subscriber_id: subscriber_id)).each do |record|
           @dispatcher.deliver_to(record, stream)
         end
       end

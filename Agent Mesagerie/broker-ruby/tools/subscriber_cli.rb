@@ -17,8 +17,14 @@ def usage!
   abort("usage: #{$PROGRAM_NAME} HOST PORT")
 end
 
-host, port = ARGV
+host, port, subscriber_id = ARGV
 usage! unless host && port
+
+subscriber_id = subscriber_id.to_s.strip
+if subscriber_id.empty?
+  warn 'A subscriber ID must be provided as the third argument.'
+  exit(1)
+end
 
 def prefer_ipv4_host(host)
   return host if host.nil?
@@ -116,7 +122,7 @@ def stop_all_subscriptions(active_calls, active_calls_mutex, verbose: false)
   end
 end
 
-def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex)
+def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex, subscriber_id:)
   subject = subject.to_s.strip
   if subject.empty?
     warn 'Subject cannot be empty.'
@@ -145,6 +151,7 @@ def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex
 
       subscription = Broker::Proto::Subscription.new(
         subject: subject,
+        subscriber_id: subscriber_id
       )
 
       begin
@@ -179,7 +186,8 @@ def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex
             reply = stub.ack(
               Broker::Proto::AckRequest.new(
                 subject: envelope.subject,
-                message_id: envelope.message_id
+                message_id: envelope.message_id,
+                subscriber_id: subscriber_id
               )
             )
             puts "  acked: #{reply.acknowledged}"
@@ -257,7 +265,7 @@ if subjects.empty?
 else
   puts "Initial subjects: #{subjects.map(&:inspect).join(', ')}"
   subjects.each do |subject|
-    start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex)
+    start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex, subscriber_id: subscriber_id)
   end
 end
 
@@ -309,7 +317,7 @@ command_thread = Thread.new do
       if argument.nil? || argument.empty?
         warn 'Subject cannot be empty.'
       else
-        start_subscription(argument, stub, auto_ack, active_calls, active_calls_mutex)
+        start_subscription(argument, stub, auto_ack, active_calls, active_calls_mutex, subscriber_id: subscriber_id)
       end
     when 'remove'
       if argument.nil? || argument.empty?

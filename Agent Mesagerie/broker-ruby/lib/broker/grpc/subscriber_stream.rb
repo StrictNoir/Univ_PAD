@@ -6,8 +6,9 @@ module Broker
     class SubscriberStream
       CLOSE_TOKEN = Object.new
 
-      def initialize(subject:, buffer_size:, logger:)
+      def initialize(subject:, subscriber_id:, buffer_size:, logger:)
         @subject = subject
+        @subscriber_id = subscriber_id
         @buffer_size = buffer_size
         @logger = logger
         @queue = Queue.new
@@ -25,7 +26,7 @@ module Broker
             rescue StandardError
               nil
                       end
-            @logger.warn("subscriber_buffer_full subject=#{@subject} dropped=#{!dropped.nil?}")
+            @logger.warn("subscriber_buffer_full subject=#{@subject} subscriber_id=#{@subscriber_id} dropped=#{!dropped.nil?}")
           end
 
           @queue << message unless @closed

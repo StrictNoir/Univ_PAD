@@ -1,6 +1,7 @@
 # lib/broker/storage/redis_store.rb
 # frozen_string_literal: true
 
+require 'set'
 require 'time'
 require 'yaml'
 require_relative '../json'
@@ -25,27 +26,38 @@ class RedisStore
     MessageRecord.new(normalized || record)
   end
 
-  def pending_for(subject)
+  def pending_for(subject, subscriber_id: nil)
     key = key_for(subject)
     raw = @r.hgetall(key)
+    acked_ids = acked_ids_for(subject, subscriber_id)
+
     raw.values.map do |json|
       decoded = Broker::Json::LOAD.call(json)
-      MessageRecord.new(
+      record = MessageRecord.new(
         subject: decoded['subject'],
         message_id: decoded['message_id'],
         payload: decoded['payload'],
         headers: decoded['headers'] || {},
         timestamp_ms: decoded['timestamp_ms']
       )
-    end.sort_by(&:timestamp_ms)
+      next if subscriber_id && acked_ids.include?(record.message_id)
+
+      record
+    end.compact.sort_by(&:timestamp_ms)
   rescue StandardError => e
     warn "redis_pending_failed: #{e.message}"
     []
   end
 
-  def ack!(subject, message_id)
+  def ack!(subject, message_id, subscriber_id)
+    return false if subscriber_id.to_s.strip.empty?
+
     key = key_for(subject)
-    @r.hdel(key, message_id) == 1
+    exists = @r.hexists(key, message_id)
+    return false unless exists
+
+    @r.sadd(ack_key_for(subject, subscriber_id), message_id)
+    true
   rescue StandardError => e
     warn "redis_ack_failed: #{e.message}"
     false
@@ -69,6 +81,20 @@ class RedisStore
 
   def key_for(subject)
     "#{@prefix}#{subject}"
+  end
+
+  def ack_key_for(subject, subscriber_id)
+    "#{@prefix}#{subject}:ack:#{subscriber_id}"
+  end
+
+  def acked_ids_for(subject, subscriber_id)
+    return Set.new unless subscriber_id
+
+    ids = @r.smembers(ack_key_for(subject, subscriber_id))
+    Set.new(ids)
+  rescue StandardError => e
+    warn "redis_acked_ids_failed: #{e.message}"
+    Set.new
   end
 
   def counter_key_for(subject)

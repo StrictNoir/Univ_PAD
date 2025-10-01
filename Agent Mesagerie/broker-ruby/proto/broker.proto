@@ -20,11 +20,13 @@ message PublishAck {
 
 message Subscription {
   string subject = 1;
+  string subscriber_id = 2;
 }
 
 message AckRequest {
   string subject = 1;
   string message_id = 2;
+  string subscriber_id = 3;
 }
 
 message AckReply {
