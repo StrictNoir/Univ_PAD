@@ -1,4 +1,5 @@
 ﻿
+using Broker.V1;
 using System.Text;
 
 namespace Subscriber.Grpc

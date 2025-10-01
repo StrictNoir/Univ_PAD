@@ -1,13 +1,9 @@
 ﻿syntax = "proto3";
 
-option csharp_namespace = "Subscriber";
+package broker.v1;
 
-package Subscvriber.v1;
+option ruby_package = "Broker::Proto";
 
-
-
-
-// Broker response
 message Envelope {
   string subject = 1;
   bytes payload = 2;
@@ -16,8 +12,12 @@ message Envelope {
   int64 timestamp_ms = 5;
 }
 
+message PublishAck {
+  string message_id = 1;
+  bool accepted = 2;
+  string detail = 3;
+}
 
-// Receiver subscription request
 message Subscription {
   string subject = 1;
   string consumer_group = 2;
@@ -34,6 +34,7 @@ message AckReply {
 }
 
 service Broker {
+  rpc Publish(Envelope) returns (PublishAck);
   rpc Subscribe(Subscription) returns (stream Envelope);
   rpc Ack(AckRequest) returns (AckReply);
 }
