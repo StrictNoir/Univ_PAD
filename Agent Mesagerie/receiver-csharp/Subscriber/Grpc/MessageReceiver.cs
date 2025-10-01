@@ -1,4 +1,5 @@
 ﻿
+using Broker.V1;
 using Grpc.Core;
 
 namespace Subscriber.Grpc
@@ -7,13 +8,13 @@ namespace Subscriber.Grpc
     {
         private readonly MessageHandler _messageHandler;
         private readonly bool _autoAck;
-        private readonly Broker.BrokerClient _brokerClient;
+        private readonly Broker.V1.Broker.BrokerClient _brokerClient;
         private readonly string _consumerGroup;
 
         public MessageReceiver(
              MessageHandler messageHandler,
              bool autoAck,
-             Broker.BrokerClient brokerClient,
+             Broker.V1.Broker.BrokerClient brokerClient,
              string consumerGroup = "")
         {
             _messageHandler = messageHandler;

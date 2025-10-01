@@ -1,4 +1,5 @@
 ﻿
+using Broker.V1;
 using Grpc.Net.Client;
 
 namespace Subscriber.Grpc
@@ -8,7 +9,7 @@ namespace Subscriber.Grpc
         private readonly string _address;
         private readonly int _port;
         private GrpcChannel? _channel;
-        private Broker.BrokerClient? _client;
+        private Broker.V1.Broker.BrokerClient? _client;
         private readonly SubscriptionManager _subscriptionManager;
         private readonly MessageHandler _messageHandler;
         private readonly string _consumerGroup;
@@ -29,7 +30,7 @@ namespace Subscriber.Grpc
             {
                 var endpoint = $"http://{_address}:{_port}";
                 _channel = GrpcChannel.ForAddress(endpoint);
-                _client = new Broker.BrokerClient(_channel);
+                _client = new Broker.V1.Broker.BrokerClient(_channel);
                 Console.WriteLine($"Connected to broker at {endpoint}");
             }
             catch (Exception ex)
