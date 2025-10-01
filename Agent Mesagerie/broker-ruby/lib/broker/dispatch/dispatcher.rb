@@ -27,6 +27,21 @@ module Broker
         @logger.warn('dispatch_queue_full dropping message')
       end
 
+      def deliver_to(record, subscribers)
+        subscribers = Array(subscribers).compact
+        return if subscribers.empty?
+
+        envelope = build_envelope(record)
+
+        subscribers.each do |subscriber|
+          subscriber.push(envelope)
+          @logger.debug("deliver subject=#{record.subject} message_id=#{record.message_id}")
+        rescue StandardError => e
+          @logger.warn("deliver_failed subject=#{record.subject} message_id=#{record.message_id} error=#{e.message}")
+        end
+      end
+
+
       def shutdown
         @worker_count.times { @queue << STOP }
         @pool.shutdown
@@ -48,19 +63,13 @@ module Broker
       end
 
       def deliver(record)
-        envelope = build_envelope(record)
         subscribers = @registry.subscribers_for(record.subject)
         if subscribers.empty?
           @logger.info("no_subscribers subject=#{record.subject}")
           return
         end
 
-        subscribers.each do |subscriber|
-          subscriber.push(envelope)
-          @logger.debug("deliver subject=#{record.subject} message_id=#{record.message_id}")
-        rescue StandardError => e
-          @logger.warn("deliver_failed subject=#{record.subject} message_id=#{record.message_id} error=#{e.message}")
-        end
+        deliver_to(record, subscribers)
       end
 
       def build_envelope(record)

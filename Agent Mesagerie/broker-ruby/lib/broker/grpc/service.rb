@@ -122,7 +122,7 @@ module Broker
         return unless @store.respond_to?(:pending_for)
 
         Array(@store.pending_for(subject)).each do |record|
-          stream.push(to_envelope(record))
+          @dispatcher.deliver_to(record, stream)
         end
       end
 
@@ -140,15 +140,6 @@ module Broker
         end
       end
 
-      def to_envelope(record)
-        ::Broker::Proto::Envelope.new(
-          subject: record.subject,
-          payload: record.payload,
-          headers: record.headers || {},
-          message_id: record.message_id,
-          timestamp_ms: record.timestamp_ms
-        )
-      end
 
       def validate_record!(record)
         subject = record[:subject].to_s.strip

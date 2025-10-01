@@ -145,7 +145,6 @@ def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex
 
       subscription = Broker::Proto::Subscription.new(
         subject: subject,
-        consumer_group: consumer_group
       )
 
       begin
