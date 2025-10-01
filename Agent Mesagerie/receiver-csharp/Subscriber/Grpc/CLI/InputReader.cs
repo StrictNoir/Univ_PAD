@@ -15,14 +15,11 @@
             var subjects = ReadSubjects();
             if (subjects == null) return null;
 
-            var consumerGroup = ReadConsumerGroup();
-            if (consumerGroup == null) return null;
 
             return new SubscriberConfiguration
             {
                 Host = host,
                 Port = port.Value,
-                ConsumerGroup = consumerGroup,
                 AutoAck = true,
                 InitialSubjects = subjects
             };
@@ -87,21 +84,6 @@
 
             return ParseSubjects(input);
         }
-
-        private string? ReadConsumerGroup()
-        {
-            Console.Write("consumer group (optional)> ");
-            var input = Console.ReadLine();
-
-            if (IsExitCommand(input))
-            {
-                Console.WriteLine("Goodbye!");
-                return null;
-            }
-
-            return input?.Trim() ?? "";
-        }
-
         private List<string> ParseSubjects(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
