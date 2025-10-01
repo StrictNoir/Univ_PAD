@@ -6,18 +6,15 @@ namespace Subscriber.Grpc
     public class MessageReceiver
     {
         private readonly MessageHandler _messageHandler;
-        private readonly bool _autoAck;
         private readonly Broker.BrokerClient _brokerClient;
    
         
 
         public MessageReceiver(
              MessageHandler messageHandler,
-             bool autoAck,
              Broker.BrokerClient brokerClient)
         {
             _messageHandler = messageHandler;
-            _autoAck = autoAck;
             _brokerClient = brokerClient;
         
         }
@@ -29,7 +26,7 @@ namespace Subscriber.Grpc
                 {
                     _messageHandler.HandleEnvelope(envelope);
 
-                    if (_autoAck && !string.IsNullOrEmpty(envelope.MessageId))
+                    if (!string.IsNullOrEmpty(envelope.MessageId))
                     {
                         await AcknowledgeAsync(envelope.Subject, envelope.MessageId);
                     }

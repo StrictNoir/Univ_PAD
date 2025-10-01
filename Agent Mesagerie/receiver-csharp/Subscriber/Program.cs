@@ -34,8 +34,8 @@ namespace Subscriber
         {
             return new GrpcSubscriberClient(
                 config.Host,
-                config.Port,
-                config.AutoAck
+                config.Port
+        
             );
         }
 
