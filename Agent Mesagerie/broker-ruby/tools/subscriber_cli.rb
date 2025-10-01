@@ -116,7 +116,7 @@ def stop_all_subscriptions(active_calls, active_calls_mutex, verbose: false)
   end
 end
 
-def start_subscription(subject, stub, consumer_group, auto_ack, active_calls, active_calls_mutex)
+def start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex)
   subject = subject.to_s.strip
   if subject.empty?
     warn 'Subject cannot be empty.'
@@ -180,8 +180,7 @@ def start_subscription(subject, stub, consumer_group, auto_ack, active_calls, ac
             reply = stub.ack(
               Broker::Proto::AckRequest.new(
                 subject: envelope.subject,
-                message_id: envelope.message_id,
-                consumer_group: consumer_group
+                message_id: envelope.message_id
               )
             )
             puts "  acked: #{reply.acknowledged}"
@@ -228,13 +227,6 @@ end
 
 subjects = subjects_input.tr(',', ' ').split.map(&:strip).reject(&:empty?).uniq
 
-consumer_group = read_input('consumer group (optional)> ')
-if exit_command?(consumer_group)
-  puts 'Goodbye!'
-  exit
-end
-consumer_group = '' if consumer_group.nil?
-
 auto_ack_input = read_input('auto-ack? [y/N]> ')
 if exit_command?(auto_ack_input)
   puts 'Goodbye!'
@@ -266,7 +258,7 @@ if subjects.empty?
 else
   puts "Initial subjects: #{subjects.map(&:inspect).join(', ')}"
   subjects.each do |subject|
-    start_subscription(subject, stub, consumer_group, auto_ack, active_calls, active_calls_mutex)
+    start_subscription(subject, stub, auto_ack, active_calls, active_calls_mutex)
   end
 end
 
@@ -318,7 +310,7 @@ command_thread = Thread.new do
       if argument.nil? || argument.empty?
         warn 'Subject cannot be empty.'
       else
-        start_subscription(argument, stub, consumer_group, auto_ack, active_calls, active_calls_mutex)
+        start_subscription(argument, stub, auto_ack, active_calls, active_calls_mutex)
       end
     when 'remove'
       if argument.nil? || argument.empty?
