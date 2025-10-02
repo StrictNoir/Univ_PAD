@@ -1,4 +1,5 @@
 ﻿
+using Subscriber.Models;
 using System.Collections.Concurrent;
 
 namespace Subscriber.Grpc

@@ -12,6 +12,7 @@ namespace Subscriber.Grpc
         private Broker.V1.Broker.BrokerClient? _client;
         private readonly SubscriptionManager _subscriptionManager;
         private readonly MessageHandler _messageHandler;
+        private MessageReceiver? _messageReceiver;
         private readonly string _consumerGroup;
         private readonly bool _autoAck;
 
@@ -31,6 +32,7 @@ namespace Subscriber.Grpc
                 var endpoint = $"http://{_address}:{_port}";
                 _channel = GrpcChannel.ForAddress(endpoint);
                 _client = new Broker.V1.Broker.BrokerClient(_channel);
+                _messageReceiver = new MessageReceiver(_messageHandler, _autoAck, _client, _consumerGroup);
                 Console.WriteLine($"Connected to broker at {endpoint}");
             }
             catch (Exception ex)
@@ -45,6 +47,7 @@ namespace Subscriber.Grpc
             {
                 Console.WriteLine("You need to connect to the broker first.");
                 await Task.CompletedTask;
+                return;
             }
 
             subject = subject.Trim();
@@ -52,12 +55,14 @@ namespace Subscriber.Grpc
             {
                 Console.WriteLine("Subject cannot be empty.");
                 await Task.CompletedTask;
+                return;
             }
 
             if (_subscriptionManager.HasSubscription(subject))
             {
                 Console.WriteLine($"Already subscribed to {subject}");
                 await Task.CompletedTask;
+                return;
             }
 
             var subscription = new Subscription
@@ -72,7 +77,6 @@ namespace Subscriber.Grpc
                 var call = _client?.Subscribe(subscription, cancellationToken: entry.CancellationTokenSource.Token);
                 entry.Call = call;
 
-                // Start receiving messages in a background task
                 var receiver = new MessageReceiver(_messageHandler, _autoAck,_client!,_consumerGroup);
                 entry.Task = Task.Run(async () => await receiver.ReceiveMessagesAsync(subject, call!, entry.CancellationTokenSource.Token));
 
@@ -84,7 +88,43 @@ namespace Subscriber.Grpc
                 Console.WriteLine($"Failed to start subscription for \"{subject}\": {ex.Message}");
             }
         }
+        public async Task<bool> ManualAcknowledgeAsync(string messageId)
+        {
 
+            if (_messageReceiver == null)
+            {
+                Console.WriteLine("Not connected to broker.");
+                return false;
+            }
+            if (!ManualAcknowledgeHandler.TryGetMessage(messageId, out var pending))
+            {
+                Console.WriteLine($"Message ID '{messageId}' not found in pending messages.");
+                return false;
+            }
+
+            var success = await _messageReceiver.AcknowledgeAsync(pending!.Subject, pending.MessageId);
+            if (success)
+            {
+                ManualAcknowledgeHandler.RemoveAcknowledged(messageId);
+            }
+            return success;
+        }
+        public void ListPendingAcknowledgments()
+        {
+            var pending = ManualAcknowledgeHandler.GetAllPending();
+            if (pending.Count == 0)
+            {
+                Console.WriteLine("No pending acknowledgments.");
+            }
+            else
+            {
+                Console.WriteLine($"Pending acknowledgments ({pending.Count}):");
+                foreach (var msg in pending)
+                {
+                    Console.WriteLine($"  [{msg.ReceivedAt:HH:mm:ss}] subject={msg.Subject} message_id={msg.MessageId}");
+                }
+            }
+        }
         public void Unsubscribe(string subject)
         {
             if (_subscriptionManager.RemoveSubscription(subject, out var entry))

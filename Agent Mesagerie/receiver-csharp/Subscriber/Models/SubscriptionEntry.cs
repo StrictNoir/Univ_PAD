@@ -1,7 +1,7 @@
 ﻿using Broker.V1;
 using Grpc.Core;
 
-namespace Subscriber.Grpc
+namespace Subscriber.Models
 {
     public class SubscriptionEntry
     {

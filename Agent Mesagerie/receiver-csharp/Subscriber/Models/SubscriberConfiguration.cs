@@ -1,5 +1,4 @@
-﻿
-namespace Subscriber.Grpc.CLI
+﻿namespace Subscriber.Models
 {
     public class SubscriberConfiguration
     {

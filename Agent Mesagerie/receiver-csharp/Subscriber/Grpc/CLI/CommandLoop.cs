@@ -16,7 +16,7 @@ namespace Subscriber.Grpc.CLI
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("command> ");
+                Console.Write("command> ");
 
                 var inputTask = Task.Run(() => Console.ReadLine(), cancellationToken);
 

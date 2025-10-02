@@ -1,27 +1,21 @@
-﻿
+﻿using Subscriber.Models;
+
 namespace Subscriber.Grpc.CLI
 {
     public class SubscriberCli
     {
-        private readonly string[] _args;
         private readonly InputReader _inputReader;
         private readonly CommandProcessor _commandProcessor;
 
-        public SubscriberCli(string[] args)
+        public SubscriberCli()
         {
-            _args = args;
             _inputReader = new InputReader();
             _commandProcessor = new CommandProcessor();
         }
 
         public async Task RunAsync()
         {
-            if (!ValidateArguments())
-            {
-                return;
-            }
-
-            var config = await _inputReader.ReadInitialConfigurationAsync();
+            var config = _inputReader.ReadInitialConfiguration();
             if (config == null)
             {
                 return;
@@ -43,28 +37,14 @@ namespace Subscriber.Grpc.CLI
             await subscriber.Shutdown();
         }
 
-        private bool ValidateArguments()
-        {
-            if (_args.Length < 2)
-            {
-                Console.WriteLine($"usage: {Environment.GetCommandLineArgs()[0]} HOST PORT");
-                return false;
-            }
-
-            if (!int.TryParse(_args[1], out _))
-            {
-                Console.WriteLine("Invalid port number");
-                return false;
-            }
-
-            return true;
-        }
-
         private async Task<bool> ConnectAndSubscribeAsync(GrpcSubscriberClient subscriber, SubscriberConfiguration config)
         {
             try
             {
+                Console.WriteLine($"Connecting to {config.Host}:{config.Port}...");
                 subscriber.Connect();
+                Console.WriteLine("Connected successfully!");
+                Console.WriteLine();
             }
             catch (Exception ex)
             {
@@ -87,13 +67,13 @@ namespace Subscriber.Grpc.CLI
             }
 
             Console.WriteLine("Type \"help\" for a list of commands.");
+            Console.WriteLine();
             return true;
         }
 
         private async Task RunInteractiveLoopAsync(GrpcSubscriberClient subscriber)
         {
             var cts = new CancellationTokenSource();
-
             Console.CancelKeyPress += (sender, e) =>
             {
                 e.Cancel = true;
