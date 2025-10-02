@@ -1,5 +1,4 @@
-﻿
-namespace Subscriber.Grpc.CLI
+﻿namespace Subscriber.Grpc.CLI
 {
     public class CommandProcessor
     {
@@ -13,28 +12,28 @@ namespace Subscriber.Grpc.CLI
             {
                 case "exit":
                     return true;
-
                 case "help":
                     PrintHelp();
                     break;
-
                 case "list":
                     subscriber.ListSubscriptions();
                     break;
-
                 case "add":
                     await HandleAddCommand(argument, subscriber);
                     break;
-
                 case "remove":
                     HandleRemoveCommand(argument, subscriber);
                     break;
-
+                case "ack":
+                    await HandleAckCommand(argument, subscriber);
+                    break;
+                case "pending":
+                    subscriber.ListPendingAcknowledgments();
+                    break;
                 default:
                     Console.WriteLine("Unknown command. Type \"help\" for a list of commands.");
                     break;
             }
-
             return false;
         }
 
@@ -66,14 +65,28 @@ namespace Subscriber.Grpc.CLI
             }
         }
 
+        private async Task HandleAckCommand(string? messageId, GrpcSubscriberClient subscriber)
+        {
+            if (string.IsNullOrEmpty(messageId))
+            {
+                Console.WriteLine("Message ID cannot be empty. Usage: ack <message_id>");
+            }
+            else
+            {
+                await subscriber.ManualAcknowledgeAsync(messageId);
+            }
+        }
+
         private void PrintHelp()
         {
             Console.WriteLine(@"Commands:
-  add <subject>    Start subscribing to <subject>.
-  remove <subject> Stop subscribing to <subject>. Use ""remove all"" to stop all.
-  list             Show currently active subscriptions.
-  help             Show this help message.
-  exit             Disconnect and exit.");
+  add <subject>       Start subscribing to <subject>.
+  remove <subject>    Stop subscribing to <subject>. Use ""remove all"" to stop all.
+  list                Show currently active subscriptions.
+  ack <message_id>    Manually acknowledge a message (when auto-ack is disabled).
+  pending             Show all pending acknowledgments.
+  help                Show this help message.
+  exit                Disconnect and exit.");
         }
     }
 }

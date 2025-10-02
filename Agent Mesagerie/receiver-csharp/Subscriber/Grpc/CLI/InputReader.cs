@@ -1,21 +1,48 @@
-﻿
+﻿using Subscriber.Models;
+
 namespace Subscriber.Grpc.CLI
 {
     public class InputReader
     {
-        public async Task<SubscriberConfiguration?> ReadInitialConfigurationAsync()
+        public SubscriberConfiguration? ReadInitialConfiguration()
         {
+            Console.WriteLine("=== gRPC Subscriber Configuration ===");
             Console.WriteLine("Type \"exit\" at any prompt to quit.");
+            Console.WriteLine();
+
+            // Get host
+            Console.Write("host [localhost]> ");
+            var hostInput = Console.ReadLine();
+            if (IsExitCommand(hostInput))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+            var host = string.IsNullOrWhiteSpace(hostInput) ? "localhost" : hostInput.Trim();
+
+            // Get port
+            Console.Write("port [5000]> ");
+            var portInput = Console.ReadLine();
+            if (IsExitCommand(portInput))
+            {
+                Console.WriteLine("Goodbye!");
+                return null;
+            }
+            int port = 5000;
+            if (!string.IsNullOrWhiteSpace(portInput) && !int.TryParse(portInput.Trim(), out port))
+            {
+                Console.WriteLine("Invalid port number, using default: 500");
+                port = 5000;
+            }
 
             // Get subjects
-            Console.Write("subjects (comma separated)> ");
+            Console.Write("subjects (comma separated, optional)> ");
             var subjectsInput = Console.ReadLine();
             if (IsExitCommand(subjectsInput))
             {
                 Console.WriteLine("Goodbye!");
                 return null;
             }
-
             var subjects = ParseSubjects(subjectsInput);
 
             // Get consumer group
@@ -35,12 +62,9 @@ namespace Subscriber.Grpc.CLI
                 Console.WriteLine("Goodbye!");
                 return null;
             }
-
             bool autoAck = autoAckInput?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) ?? false;
 
-            var args = Environment.GetCommandLineArgs();
-            var host = args.Length > 1 ? args[1] : "localhost";
-            var port = args.Length > 2 && int.TryParse(args[2], out int p) ? p : 50051;
+            Console.WriteLine();
 
             return new SubscriberConfiguration
             {

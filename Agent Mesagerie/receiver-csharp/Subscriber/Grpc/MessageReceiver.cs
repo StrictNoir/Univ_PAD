@@ -34,6 +34,11 @@ namespace Subscriber.Grpc
                     {
                         await AcknowledgeAsync(envelope.Subject, envelope.MessageId);
                     }
+                    else if(!_autoAck && !string.IsNullOrEmpty(envelope.MessageId))
+                    {
+                        ManualAcknowledgeHandler.AddPendingMessage(envelope.Subject, envelope.MessageId);
+                        Console.WriteLine($"  [pending ack] message_id={envelope.MessageId} (use 'ack {envelope.MessageId}' to acknowledge)");
+                    }
                 }
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
@@ -53,7 +58,7 @@ namespace Subscriber.Grpc
                 Console.WriteLine($"Subscription for \"{subject}\" ended.");
             }
         }
-        private async Task AcknowledgeAsync(string subject, string messageId)
+        public async Task<bool> AcknowledgeAsync(string subject, string messageId)
         {
             try
             {
@@ -65,14 +70,17 @@ namespace Subscriber.Grpc
                 });
 
                 Console.WriteLine($"  acked: {ackReply.Acknowledged} (message_id={messageId})");
+                return true;
             }
             catch (RpcException ex)
             {
                 Console.WriteLine($"  ACK ERROR {ex.StatusCode}: {ex.Status.Detail}");
+                return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"  ACK ERROR: {ex.Message}");
+                return false;
             }
         }
 
