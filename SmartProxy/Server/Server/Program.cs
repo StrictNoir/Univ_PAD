@@ -1,4 +1,7 @@
+
 using MongoDB.Driver;
+using Server.MappingProfiles;
+using Server.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,18 +12,33 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
+
+// Connection string section extraction from Appsettings.json
 var mongoConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
 var mongoDatabaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
+
+// MongoClient driver setup
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     return new MongoClient(mongoConnectionString);
 });
+// Getting database
 builder.Services.AddScoped(sp =>
 {
     var client = sp.GetRequiredService<IMongoClient>();
     return client.GetDatabase(mongoDatabaseName);
 });
+
+// Repository registration
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// Employee registration
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 
 var app = builder.Build();
 
