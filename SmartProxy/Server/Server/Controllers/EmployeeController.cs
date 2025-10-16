@@ -59,7 +59,7 @@ namespace Server.Controllers
                 return StatusCode(500, "Something went wrong...");
             }
         }
-        [HttpPost("delete/{id}")]
+        [HttpDelete("delete/{id}")]
         public async Task<IActionResult> Delete(string id)
         {
             try
