@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using Server.MappingProfiles;
 using Server.Repositories;
+using Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,6 @@ builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
-
 
 // Connection string section extraction from Appsettings.json
 var mongoConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
@@ -37,9 +37,14 @@ builder.Services.AddScoped(sp =>
 // Repository registration
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-// Employee registration
+// Employee repository registration
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 
+// Service registration
+builder.Services.AddScoped(typeof(IEntityService<,,>), typeof(EntityService<,,>));
+
+// Employee Service registration
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();    
 var app = builder.Build();
 
 
