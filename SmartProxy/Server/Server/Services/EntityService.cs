@@ -8,9 +8,9 @@ namespace Server.Services
     {
         Task<IEnumerable<TGetDto>> GetAllAsync();
         Task<TGetDto?> GetByIdAsync(string id);
-        Task CreateAsync(TInsertDto dto);
-        Task UpsertAsync(TInsertDto dto);
-        Task DeleteAsync(string id);
+        Task<string> CreateAsync(TInsertDto dto);
+        Task<bool> UpsertAsync(TInsertDto dto,string id);
+        Task<bool> DeleteAsync(string id);
     }
     public class EntityService<TEntity, TGetDto,TInsertDto> : IEntityService<TEntity, TGetDto,TInsertDto> where TEntity: Document
     {
@@ -22,15 +22,15 @@ namespace Server.Services
             _repository = repository;
             _mapper = mapper;
         }
-        public async Task CreateAsync(TInsertDto dto)
+        public async Task<string> CreateAsync(TInsertDto dto)
         {
             var entity = _mapper.Map<TEntity>(dto);
-            await _repository.CreateAsync(entity);
+            return await _repository.CreateAsync(entity);
         }
 
-        public async Task DeleteAsync(string id)
+        public async Task<bool> DeleteAsync(string id)
         {
-            await _repository.DeleteAsync(id);
+            return await _repository.DeleteAsync(id);
         }
 
         public async Task<IEnumerable<TGetDto>> GetAllAsync()
@@ -45,10 +45,10 @@ namespace Server.Services
             return entity == null ? default : _mapper.Map<TGetDto>(entity);
         }
 
-        public async Task UpsertAsync(TInsertDto dto)
+        public async Task<bool> UpsertAsync(TInsertDto dto, string id)
         {
             var entity = _mapper.Map<TEntity>(dto);
-            await _repository.UpsertAsync(entity);
+            return await _repository.UpsertAsync(entity,id);
         }
     }
 }

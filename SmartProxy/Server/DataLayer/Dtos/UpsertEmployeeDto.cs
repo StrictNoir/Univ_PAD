@@ -1,8 +1,7 @@
-﻿using DataLayer.Entities;
-
+﻿
 namespace DataLayer.Dtos
 {
-    public class UpsertEmployeeDto : Document
+    public class UpsertEmployeeDto
     {
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;

@@ -13,11 +13,13 @@ namespace Server.Repositories
             _collection = db.GetCollection<T>(typeof(T).Name);
             _logger = logger;
         }
-        public async Task CreateAsync(T entity)
+        public async Task<string> CreateAsync(T entity)
         {
             try
             {
                 await _collection.InsertOneAsync(entity);
+                return entity.Id;
+
             }
             catch (MongoException ex)
             {
@@ -31,12 +33,13 @@ namespace Server.Repositories
             }
         }
 
-        public async Task DeleteAsync(string id)
+        public async Task<bool> DeleteAsync(string id)
         {
             var objectId = new ObjectId(id);
             try
             {
-                await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", objectId));
+                var result = await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", objectId));
+                return result.DeletedCount > 0;
             }
             catch (MongoException ex)
             {
@@ -61,12 +64,14 @@ namespace Server.Repositories
             return await _collection.Find(Builders<T>.Filter.Eq("_id", objectId)).FirstOrDefaultAsync();
         }
 
-        public async Task UpsertAsync(T entity)
+        public async Task<bool> UpsertAsync(T entity,string id)
         {
-      
             try
             {
-               await _collection.ReplaceOneAsync(doc => doc.Id == entity.Id, entity, new ReplaceOptions() { IsUpsert = true});
+                entity.Id = id;
+               var result = await _collection.ReplaceOneAsync(doc => doc.Id == id, entity, new ReplaceOptions() { IsUpsert = true});
+                bool isCreated = result.MatchedCount == 0 || result.UpsertedId != null;
+                return isCreated;
             }
             catch (MongoException ex)
             {

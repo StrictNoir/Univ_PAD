@@ -6,9 +6,9 @@ namespace Server.Repositories
     {
         Task<IEnumerable<T>> GetAllAsync();
         Task<T?> GetByIdAsync(string id);
-        Task CreateAsync(T entity);
-        Task DeleteAsync(string id);
-        Task UpsertAsync(T entity);
+        Task<string> CreateAsync(T entity);
+        Task<bool> DeleteAsync(string id);
+        Task<bool> UpsertAsync(T entity,string id);
 
     }
 }
