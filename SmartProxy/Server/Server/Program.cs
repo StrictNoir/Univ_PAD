@@ -18,8 +18,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
 // Connection string section extraction from Appsettings.json
-var mongoConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
-var mongoDatabaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
+var mongoHost = builder.Configuration["MONGO_HOST"];
+var mongoDatabaseName = builder.Configuration["MONGO_DB_NAME"];
+var mongoConnectionString = $"mongodb://{mongoHost}:27017";
 
 // MongoClient driver setup
 
