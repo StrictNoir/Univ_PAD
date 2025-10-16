@@ -1,11 +1,11 @@
-﻿name: smart_proxy_app
+name: smart_proxy_app
 services:
   server:
     container_name: web_api
     image: web_api_image
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Server/Dockerfile
     restart: no
     ports: 
       - "8080:8080"
@@ -23,7 +23,7 @@ services:
       - mongo_data:/data/db
       - mongo_config:/data/configdb
     environment:
-      - MONGO_INITDB_DATABASE=TestMongoDB
+      - MONGO_INITDB_DATABASE=EmployeeDb
       - MONGO_LOG_LEVEL=warning
 volumes:
   mongo_data:
