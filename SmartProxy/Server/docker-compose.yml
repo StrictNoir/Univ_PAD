@@ -15,7 +15,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - MONGO_DB_NAME=EmployeeDb1
       - MONGO_HOST=mongo1
-
+        
   server2:
     container_name: web_api_2
     image: web_api_image
@@ -24,7 +24,7 @@ services:
       dockerfile: Server/Dockerfile
     restart: no
     ports: 
-      - "8081:8081"
+      - "8081:8080"
     depends_on:
       - mongo2
     environment:
