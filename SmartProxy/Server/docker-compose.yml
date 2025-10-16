@@ -1,7 +1,7 @@
 name: smart_proxy_app
 services:
-  server:
-    container_name: web_api
+  server1:
+    container_name: web_api_1
     image: web_api_image
     build:
       context: .
@@ -10,22 +10,57 @@ services:
     ports: 
       - "8080:8080"
     depends_on: 
-      - mongo
+      - mongo1
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-  mongo:
-    container_name: mongo
+      - MONGO_DB_NAME=EmployeeDb1
+      - MONGO_HOST=mongo1
+        
+  server2:
+    container_name: web_api_2
+    image: web_api_image
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    restart: no
+    ports: 
+      - "8081:8080"
+    depends_on:
+      - mongo2
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - MONGO_DB_NAME=EmployeeDb2
+      - MONGO_HOST=mongo2
+
+
+  mongo1:
+    container_name: mongo1
     image: mongo:latest
     restart: no
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
-      - mongo_config:/data/configdb
+      - mongo_data1:/data/db
+      - mongo_config1:/data/configdb
     environment:
-      - MONGO_INITDB_DATABASE=EmployeeDb
+      - MONGO_INITDB_DATABASE=EmployeeDb1
+      - MONGO_LOG_LEVEL=warning
+  
+  mongo2:
+    container_name: mongo2
+    image: mongo:latest
+    restart: no
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data2:/data/db
+      - mongo_config2:/data/configdb
+    environment:
+      - MONGO_INITDB_DATABASE=EmployeeDb2
       - MONGO_LOG_LEVEL=warning
 volumes:
-  mongo_data:
-  mongo_config:
+  mongo_data1:
+  mongo_config1:
+  mongo_data2:
+  mongo_config2:
       
