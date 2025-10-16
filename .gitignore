@@ -1,0 +1,94 @@
+## Visual Studio / .NET Core
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+Debug/
+Release/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+out/
+
+# VS temporary files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code Workspace settings
+*.code-workspace
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# ASP.NET Core generated files
+wwwroot/
+appsettings.Development.json
+appsettings.Local.json
+
+# Publish profiles
+*.pubxml
+*.publishproj
+
+# NuGet
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+
+# User-specific files
+*.rsuser
+*.psess
+*.vsp
+*.vspx
+*.vspscc
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Coverage files
+coverage/
+*.coverage
+*.coveragexml
+
+# Docker
+docker-compose.override.yml
+
+# Environment variables
+.env
+
+# Azure publishing and configs
+PublishProfiles/
+**/*.azurePubxml
+AzureFunctionsTools/
+
+# Cache
+*.local.json
+node_modules/
+npm-debug.log
+
+# Temporary files
+$tf/
+*.tmp
+*.stackdump
+*.swp
+*.swo
+
+# Git artifacts
+*.orig
