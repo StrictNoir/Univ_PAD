@@ -1,6 +1,8 @@
 
 using MongoDB.Driver;
+using Server.Config;
 using Server.MappingProfiles;
+using Server.RabbitMq;
 using Server.Repositories;
 using Server.Services;
 
@@ -21,6 +23,14 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 var mongoHost = builder.Configuration["MONGO_HOST"];
 var mongoDatabaseName = builder.Configuration["MONGO_DB_NAME"];
 var mongoConnectionString = $"mongodb://{mongoHost}:27017";
+
+
+// RabbitMq string section mapping  from appsettings.json
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
+
+builder.Services.AddSingleton(typeof(IRabbitMQService<>),typeof(RabbitMQService<>));
+builder.Services.AddSingleton<IRabbitMQChannel, RabbitMQChannel>();
+
 
 // MongoClient driver setup
 
@@ -59,5 +69,9 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+var channel = app.Services.GetRequiredService<IRabbitMQChannel>();
+await channel.InitializeAsync();
 
 app.Run();
