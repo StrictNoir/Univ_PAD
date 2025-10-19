@@ -1,5 +1,18 @@
 name: smart_proxy_app
 services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    restart: no
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASS}
+
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
   server1:
     container_name: web_api_1
     image: web_api_image
@@ -11,6 +24,7 @@ services:
       - "8080:8080"
     depends_on: 
       - mongo1
+      - rabbitmq
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MONGO_DB_NAME=EmployeeDb1
@@ -27,6 +41,7 @@ services:
       - "8081:8080"
     depends_on:
       - mongo2
+      - rabbitmq
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MONGO_DB_NAME=EmployeeDb2
@@ -63,4 +78,5 @@ volumes:
   mongo_config1:
   mongo_data2:
   mongo_config2:
+  rabbitmq_data:
       
