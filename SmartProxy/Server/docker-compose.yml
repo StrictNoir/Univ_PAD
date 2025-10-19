@@ -3,13 +3,19 @@ services:
   rabbitmq:
     container_name: rabbitmq
     image: rabbitmq:3-management
-    restart: no
+    restart: always
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASS}
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
@@ -19,16 +25,30 @@ services:
     build:
       context: .
       dockerfile: Server/Dockerfile
-    restart: no
+    restart: always
     ports: 
       - "8080:8080"
     depends_on: 
-      - mongo1
-      - rabbitmq
+      mongo1:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MONGO_DB_NAME=EmployeeDb1
       - MONGO_HOST=mongo1
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - RabbitMQ__Exchange__Name=WebApiExchange
+      - RabbitMQ__Exchange__Type=fanout
+      - RabbitMQ__Exchange__Durable=true
+      - RabbitMQ__Exchange__AutoDelete=false
+      - RabbitMQ__Queue__Name=WebApiQueue1
+      - RabbitMQ__Queue__Durable=true
+      - RabbitMQ__Queue__Exclusive=false
+      - RabbitMQ__Queue__AutoDelete=false
         
   server2:
     container_name: web_api_2
@@ -36,16 +56,30 @@ services:
     build:
       context: .
       dockerfile: Server/Dockerfile
-    restart: no
+    restart: always
     ports: 
       - "8081:8080"
     depends_on:
-      - mongo2
-      - rabbitmq
+      mongo2:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MONGO_DB_NAME=EmployeeDb2
       - MONGO_HOST=mongo2
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - RabbitMQ__Exchange__Name=WebApiExchange
+      - RabbitMQ__Exchange__Type=fanout
+      - RabbitMQ__Exchange__Durable=true
+      - RabbitMQ__Exchange__AutoDelete=false
+      - RabbitMQ__Queue__Name=WebApiQueue2
+      - RabbitMQ__Queue__Durable=true
+      - RabbitMQ__Queue__Exclusive=false
+      - RabbitMQ__Queue__AutoDelete=false
 
 
   mongo1:

@@ -13,7 +13,7 @@ namespace Server.RabbitMq
         private readonly IRabbitMQChannel _rabbitChannel;
         private readonly ILogger<RabbitMQService<T>> _logger;
         private readonly RabbitMqSettings _settings;
-        private IChannel _channel;
+        private IChannel? _channel;
         
         public RabbitMQService(IOptions<RabbitMqSettings> options, 
             ILogger<RabbitMQService<T>> logger, IRabbitMQChannel channel)
@@ -21,20 +21,33 @@ namespace Server.RabbitMq
             _logger = logger;
             _rabbitChannel = channel;
             _settings = options.Value;
-            _channel = _rabbitChannel.Channel;
+            
+            _channel = _rabbitChannel.Channel;      
         }
 
         public async Task PublishMessageAsync(Message<T> message)
         {
+            if (_channel == null)
+            {
+                _logger.LogWarning("RabbitMQ channel was null. Trying to reinitialize...");
+                await _rabbitChannel.InitializeAsync();
+                _channel = _rabbitChannel.Channel;
+
+                if (_channel == null)
+                {
+                    _logger.LogError("Failed to reinitialize RabbitMQ channel.");
+                    return; 
+                }
+            }
             try
             {
-                var exchangeName = _settings.ExchangeSettings.Name;
+                var exchangeName = _settings.Exchange.Name;
 
                 var json = JsonSerializer.Serialize(message);
 
                 var body = Encoding.UTF8.GetBytes(json);
 
-                await _channel.BasicPublishAsync(exchange: exchangeName, "",body);
+                await _channel.BasicPublishAsync(exchange: exchangeName,string.Empty,body);
                 _logger.LogInformation($"Published message to {exchangeName}: {json}");
             }
             catch (Exception ex)
@@ -46,6 +59,18 @@ namespace Server.RabbitMq
         }
         public async Task StartConsumer(Func<Message<T>,Task> handler)
         {
+            if (_channel == null)
+            {
+                _logger.LogWarning("RabbitMQ channel was null. Trying to reinitialize...");
+                await _rabbitChannel.InitializeAsync();
+                _channel = _rabbitChannel.Channel;
+
+                if (_channel == null)
+                {
+                    _logger.LogError("Failed to reinitialize RabbitMQ channel.");
+                    return;
+                }
+            }
             var consumer = new AsyncEventingBasicConsumer(_channel);
 
             consumer.ReceivedAsync += async (sender, ea) =>
@@ -69,8 +94,9 @@ namespace Server.RabbitMq
                     await _channel.BasicNackAsync(ea.DeliveryTag, false, true);
                 }
             };
-           await _channel.BasicConsumeAsync(queue: _settings.QueueSettings.Name,autoAck:false,consumer: consumer);
+           await _channel.BasicConsumeAsync(queue: _settings.Queue.Name,autoAck:false,consumer: consumer);
 
         }
+        
     }
 }

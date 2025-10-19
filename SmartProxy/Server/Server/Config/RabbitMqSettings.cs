@@ -6,7 +6,7 @@
         public int Port { get; set; } = 5672;
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-        public ExchangeSettings ExchangeSettings { get; set; } = new();
-        public QueueSettings QueueSettings { get; set; } = new();
+        public ExchangeSettings Exchange { get; set; } = new();
+        public QueueSettings Queue { get; set; } = new();
     }
 }

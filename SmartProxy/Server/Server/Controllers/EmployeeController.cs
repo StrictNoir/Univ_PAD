@@ -36,7 +36,7 @@ namespace Server.Controllers
             try
             {
                 var id = await _employeeService.CreateAsync(employee);
-                return CreatedAtAction(nameof(GetById),new {id},employee);
+                return CreatedAtAction(nameof(GetById),new {id},id);
             }
             catch
             {
@@ -50,7 +50,10 @@ namespace Server.Controllers
             {
                  var isCreated = await _employeeService.UpsertAsync(employee,id);
                 if (isCreated)
-                    return CreatedAtAction(nameof(GetById), new { id }, employee);
+                {
+                    
+                    return CreatedAtAction(nameof(GetById), new { id }, id);
+                }
 
                 else return Ok(employee);
             }
