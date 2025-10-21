@@ -17,6 +17,10 @@
       ],
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
+      },
+      "FileCacheOptions": {
+        "TtlSeconds": 10,
+        "Region": "ApiCache"
       }
     },
     {
