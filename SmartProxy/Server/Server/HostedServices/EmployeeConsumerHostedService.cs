@@ -2,7 +2,7 @@
 
 namespace Server.HostedServices
 {
-    public class EmployeeConsumerHostedService : BackgroundService
+    public class EmployeeConsumerHostedService : IHostedService
     {
         private readonly EmployeeMessageHandler _handler;
         private readonly ILogger<EmployeeConsumerHostedService> _logger;
@@ -15,7 +15,7 @@ namespace Server.HostedServices
             _logger = logger;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public async Task StartAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Employee Consumer Hosted Service is starting.");
 
@@ -27,11 +27,6 @@ namespace Server.HostedServices
                 await _handler.StartAsync();
                 _logger.LogInformation("Employee Consumer started successfully and is now listening for messages.");
 
-       
-                while (!stoppingToken.IsCancellationRequested)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-                }
             }
             catch (OperationCanceledException)
             {
@@ -44,10 +39,10 @@ namespace Server.HostedServices
             }
         }
 
-        public override async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Employee Consumer Hosted Service is stopping.");
-            await base.StopAsync(cancellationToken);
+            return Task.CompletedTask;
         }
     }
 }
