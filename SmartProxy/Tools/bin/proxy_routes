@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+
+require 'optparse'
+require 'smart_proxy/tools/proxy_config'
+
+options = {
+  config: ENV.fetch('SMART_PROXY_PROXY_CONFIG', File.expand_path('../config/ocelot.json', __dir__))
+}
+
+OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Usage: proxy_routes [options]
+
+    Prints a summary of the SmartProxy route configuration.
+  BANNER
+
+  opts.on('-c', '--config PATH', 'Path to the ocelot.json configuration file') do |path|
+    options[:config] = path
+  end
+
+  opts.on('-h', '--help', 'Show this help message') do
+    puts opts
+    exit
+  end
+end.parse!
+
+config = SmartProxy::Tools::ProxyConfig.load(options[:config])
+
+config.summary.each_with_index do |route, index|
+  puts "Route ##{index + 1}:"
+  puts "  Upstream Methods: #{route[:upstream_methods].join(', ')}"
+  puts "  Upstream Path:    #{route[:upstream_path]}"
+  puts "  Downstream Path:  #{route[:downstream_path]}"
+  hosts = route[:downstream_hosts].map { |host| "#{host['Host']}:#{host['Port']}" }
+  puts "  Downstream Hosts: #{hosts.join(', ')}"
+  puts "  Load Balancer:    #{route[:round_robin] ? 'RoundRobin' : 'Other'}"
+  puts
+end

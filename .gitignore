@@ -92,3 +92,6 @@ $tf/
 
 # Git artifacts
 *.orig
+
+!SmartProxy/Tools/bin/
+!SmartProxy/Tools/bin/*
