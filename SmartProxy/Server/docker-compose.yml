@@ -107,6 +107,28 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=EmployeeDb2
       - MONGO_LOG_LEVEL=warning
+
+  tools:
+    build:
+      context: ./Tools
+      dockerfile: Dockerfile
+    image: smartproxy/tools
+    container_name: smartproxy-tools
+    environment:
+      SMART_PROXY_SERVER1_URL: http://server1:8080/api/Employee
+      SMART_PROXY_SERVER2_URL: http://server2:8080/api/Employee
+      SMART_PROXY_PROXY_URL: http://proxy:9000/api/Employee
+      SMART_PROXY_WAIT_FOR_SYNC: "3"
+      SMART_PROXY_WAIT_FOR_RESOLUTION: "5"
+    depends_on:
+      server1:
+        condition: service_started
+      server2:
+        condition: service_started
+      proxy:
+        condition: service_started
+    command: [ "tail", "-f", "/dev/null" ]
+
 volumes:
   mongo_data1:
   mongo_config1:
