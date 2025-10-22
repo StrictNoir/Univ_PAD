@@ -15,6 +15,7 @@
           "Port": 8081
         }
       ],
+      "FileCacheOptions": { "TtlSeconds": 60 },
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
       }
