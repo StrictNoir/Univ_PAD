@@ -28,10 +28,14 @@ var mongoConnectionString = $"mongodb://{mongoHost}:27017";
 
 // RabbitMq string section mapping  from appsettings.json
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
-
+// RabbitMQ service registration
 builder.Services.AddSingleton(typeof(IRabbitMQService<>),typeof(RabbitMQService<>));
+// RabbitMq Channel registration
 builder.Services.AddSingleton<IRabbitMQChannel, RabbitMQChannel>(); 
+// EmployeeHandlder registration
 builder.Services.AddSingleton<EmployeeMessageHandler>();
+// Employee Hosted Service registration
+
 builder.Services.AddHostedService<EmployeeConsumerHostedService>();
 
 

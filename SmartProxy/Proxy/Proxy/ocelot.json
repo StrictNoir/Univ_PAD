@@ -14,12 +14,12 @@
           "Host": "localhost",
           "Port": 8081
         }
-      ],
+      ],  
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
       },
       "FileCacheOptions": {
-        "TtlSeconds": 10,
+        "TtlSeconds": 10,  
         "Region": "ApiCache"
       }
     },
