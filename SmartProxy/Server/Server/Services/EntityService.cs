@@ -5,33 +5,42 @@ using Server.Repositories;
 
 namespace Server.Services
 {
-    public interface IEntityService<TEntity, TGetDto,TInsertDto> where TEntity : Document
+    public interface IEntityService<TEntity, TGetDto, TInsertDto>
+        where TEntity : Document
     {
         Task<IEnumerable<TGetDto>> GetAllAsync();
         Task<TGetDto?> GetByIdAsync(string id);
         Task<string> CreateAsync(TInsertDto dto);
-        Task<bool> UpsertAsync(TInsertDto dto,string id);
+        Task<bool> UpsertAsync(TInsertDto dto, string id);
         Task<bool> DeleteAsync(string id);
     }
-    public class EntityService<TEntity, TGetDto,TInsertDto> : IEntityService<TEntity, TGetDto,TInsertDto> where TEntity: Document
+
+    public class EntityService<TEntity, TGetDto, TInsertDto>
+        : IEntityService<TEntity, TGetDto, TInsertDto>
+        where TEntity : Document
     {
         private readonly IRepository<TEntity> _repository;
         private readonly IMapper _mapper;
-        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IRabbitMQService<TEntity> _rabbitMqService;
         private readonly ILogger<EntityService<TEntity, TGetDto, TInsertDto>> _logger;
-        public EntityService(IRepository<TEntity> repository, IMapper mapper,
-              IServiceScopeFactory scopeFactory,
+
+        public EntityService(
+            IRepository<TEntity> repository,
+            IMapper mapper,
+            IRabbitMQService<TEntity> rabbitMqService,
             ILogger<EntityService<TEntity, TGetDto, TInsertDto>> logger)
         {
             _repository = repository;
             _mapper = mapper;
-            _scopeFactory = scopeFactory;
+            _rabbitMqService = rabbitMqService;
             _logger = logger;
         }
+
         public async Task<string> CreateAsync(TInsertDto dto)
         {
             var entity = _mapper.Map<TEntity>(dto);
             var id = await _repository.CreateAsync(entity);
+
             var message = new Message<TEntity>
             {
                 MessageType = MessageType.Upsert,
@@ -39,13 +48,12 @@ namespace Server.Services
                 LastChangedAt = DateTime.UtcNow,
                 Id = null!,
             };
+
             try
             {
-                using var scope = _scopeFactory.CreateScope();
-                var rabbitMqService = scope.ServiceProvider.GetRequiredService<IRabbitMQService<TEntity>>();
-                await rabbitMqService.PublishMessageAsync(message);
+                await _rabbitMqService.PublishMessageAsync(message);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to publish create message.");
             }
@@ -57,7 +65,6 @@ namespace Server.Services
         {
             var result = await _repository.DeleteAsync(id);
 
-            
             var message = new Message<TEntity>
             {
                 MessageType = MessageType.Delete,
@@ -65,13 +72,12 @@ namespace Server.Services
                 LastChangedAt = DateTime.UtcNow,
                 Id = id,
             };
+
             try
             {
-                using var scope = _scopeFactory.CreateScope();
-                var rabbitMqService = scope.ServiceProvider.GetRequiredService<IRabbitMQService<TEntity>>();
-                await rabbitMqService.PublishMessageAsync(message);
+                await _rabbitMqService.PublishMessageAsync(message);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to publish delete message.");
             }
@@ -94,7 +100,7 @@ namespace Server.Services
         public async Task<bool> UpsertAsync(TInsertDto dto, string id)
         {
             var entity = _mapper.Map<TEntity>(dto);
-            var result =  await _repository.UpsertAsync(entity,id);
+            var result = await _repository.UpsertAsync(entity, id);
 
             var message = new Message<TEntity>
             {
@@ -102,13 +108,11 @@ namespace Server.Services
                 Payload = entity,
                 LastChangedAt = DateTime.UtcNow,
                 MessageType = MessageType.Upsert,
-                
             };
+
             try
             {
-                using var scope = _scopeFactory.CreateScope();
-                var rabbitMqService = scope.ServiceProvider.GetRequiredService<IRabbitMQService<TEntity>>();
-                await rabbitMqService.PublishMessageAsync(message);
+                await _rabbitMqService.PublishMessageAsync(message);
             }
             catch (Exception ex)
             {
