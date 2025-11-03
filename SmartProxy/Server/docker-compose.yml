@@ -8,8 +8,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASS}
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASSWORD=guest
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 5s
@@ -18,7 +18,7 @@ services:
       start_period: 30s
 
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_data:/var/lib/rabbitmq    
   server1:
     container_name: web_api_1
     image: web_api_image
@@ -39,8 +39,8 @@ services:
       - MONGO_HOST=mongo1
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
-      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
       - RabbitMQ__Exchange__Name=WebApiExchange
       - RabbitMQ__Exchange__Type=fanout
       - RabbitMQ__Exchange__Durable=true
@@ -70,8 +70,8 @@ services:
       - MONGO_HOST=mongo2
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
-      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
       - RabbitMQ__Exchange__Name=WebApiExchange
       - RabbitMQ__Exchange__Type=fanout
       - RabbitMQ__Exchange__Durable=true
@@ -107,6 +107,23 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=EmployeeDb2
       - MONGO_LOG_LEVEL=warning
+  proxy:
+    container_name: proxy
+    image: proxy_image
+    build:
+      context: ../Proxy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=9000
+    depends_on:
+      server1:
+        condition: service_started
+      server2:
+        condition: service_started
 volumes:
   mongo_data1:
   mongo_config1:
