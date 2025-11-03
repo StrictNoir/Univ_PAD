@@ -7,12 +7,12 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "server1",
           "Port": 8080
         },
         {
-          "Host": "localhost",
-          "Port": 8081
+          "Host": "server2",
+          "Port": 8080
         }
       ],
       "FileCacheOptions": { "TtlSeconds": 60 },
@@ -27,12 +27,12 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "server1",
           "Port": 8080
         },
         {
-          "Host": "localhost",
-          "Port": 8081
+          "Host": "server2",
+          "Port": 8080
         }
       ],
       "LoadBalancerOptions": {
