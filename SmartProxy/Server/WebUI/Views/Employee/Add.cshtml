@@ -1,0 +1,27 @@
+@model WebUI.Models.Employee
+
+<h2>Add Employee</h2>
+
+<form asp-action="Add" method="post">
+    <div>
+        <label>First Name</label>
+        <input asp-for="FirstName" />
+    </div>
+    <div>
+        <label>Last Name</label>
+        <input asp-for="LastName" />
+    </div>
+    <div>
+        <label>Email</label>
+        <input asp-for="Email" />
+    </div>
+    <div>
+        <label>Position</label>
+        <input asp-for="Position" />
+    </div>
+    <div>
+        <label>Salary</label>
+        <input asp-for="Salary" type="number" step="0.01" />
+    </div>
+    <button type="submit">Add</button>
+</form>

@@ -124,6 +124,13 @@ services:
         condition: service_started
       server2:
         condition: service_started
+  webui:
+    image: webui
+    build:
+      context: .
+      dockerfile: WebUI/Dockerfile
+    ports:
+      - "9100:8080"
 volumes:
   mongo_data1:
   mongo_config1:

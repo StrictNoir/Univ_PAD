@@ -1,0 +1,27 @@
+﻿@model List<Employee>
+
+<h2>Employees</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Email</th>
+        <th>Position</th>
+        <th>Salary</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var e in Model)
+    {
+        <tr>
+            <td>@e.FirstName</td>
+            <td>@e.LastName</td>
+            <td>@e.Email</td>
+            <td>@e.Position</td>
+            <td>@e.Salary</td>
+        </tr>
+    }
+    </tbody>
+</table>
