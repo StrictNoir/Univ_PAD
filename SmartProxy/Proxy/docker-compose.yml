@@ -1,0 +1,25 @@
+services:
+  proxy:
+    image: proxy_image
+    container_name: proxy
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 9000
+      SERVER_HOST: <SERVER_IP> # server ip
+      SERVER_PORT: 8080  # Backend Web API port
+    depends_on: []
+
+  webui:
+    image: webui
+    container_name: webui
+    restart: unless-stopped
+    ports:
+      - "9100:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      PROXY_URL: http://proxy:9000  # WebUI calls proxy
+    depends_on:
+      - proxy

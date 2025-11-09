@@ -1,140 +1,62 @@
-name: smart_proxy_app
 services:
   rabbitmq:
-    container_name: rabbitmq
     image: rabbitmq:3-management
+    container_name: rabbitmq
     restart: unless-stopped
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASSWORD=guest
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASSWORD: guest
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 5s
       timeout: 10s
       retries: 10
       start_period: 30s
-
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq    
-  server1:
-    container_name: web_api_1
-    image: web_api_image
-    build:
-      context: .
-      dockerfile: Server/Dockerfile
-    restart: unless-stopped
-    ports: 
-      - "8080:8080"
-    depends_on: 
-      mongo1:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - MONGO_DB_NAME=EmployeeDb1
-      - MONGO_HOST=mongo1
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=guest
-      - RabbitMQ__Password=guest
-      - RabbitMQ__Exchange__Name=WebApiExchange
-      - RabbitMQ__Exchange__Type=fanout
-      - RabbitMQ__Exchange__Durable=true
-      - RabbitMQ__Exchange__AutoDelete=false
-      - RabbitMQ__Queue__Name=WebApiQueue1
-      - RabbitMQ__Queue__Durable=true
-      - RabbitMQ__Queue__Exclusive=false
-      - RabbitMQ__Queue__AutoDelete=false
-        
-  server2:
-    container_name: web_api_2
-    image: web_api_image
-    build:
-      context: .
-      dockerfile: Server/Dockerfile
-    restart: unless-stopped
-    ports: 
-      - "8081:8080"
-    depends_on:
-      mongo2:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - MONGO_DB_NAME=EmployeeDb2
-      - MONGO_HOST=mongo2
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=guest
-      - RabbitMQ__Password=guest
-      - RabbitMQ__Exchange__Name=WebApiExchange
-      - RabbitMQ__Exchange__Type=fanout
-      - RabbitMQ__Exchange__Durable=true
-      - RabbitMQ__Exchange__AutoDelete=false
-      - RabbitMQ__Queue__Name=WebApiQueue2
-      - RabbitMQ__Queue__Durable=true
-      - RabbitMQ__Queue__Exclusive=false
-      - RabbitMQ__Queue__AutoDelete=false
+      - rabbitmq_data:/var/lib/rabbitmq
 
-
-  mongo1:
-    container_name: mongo1
+  mongo:
     image: mongo:latest
+    container_name: mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data1:/data/db
-      - mongo_config1:/data/configdb
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
     environment:
-      - MONGO_INITDB_DATABASE=EmployeeDb1
-      - MONGO_LOG_LEVEL=warning
-  
-  mongo2:
-    container_name: mongo2
-    image: mongo:latest
+      MONGO_INITDB_DATABASE: EmployeeDb
+
+  server:
+    image: web_api_image
+    container_name: web_api
     restart: unless-stopped
     ports:
-      - "27018:27017"
-    volumes:
-      - mongo_data2:/data/db
-      - mongo_config2:/data/configdb
-    environment:
-      - MONGO_INITDB_DATABASE=EmployeeDb2
-      - MONGO_LOG_LEVEL=warning
-  proxy:
-    container_name: proxy
-    image: proxy_image
-    build:
-      context: ../Proxy
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "9000:9000"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=9000
+      - "8080:8080"
     depends_on:
-      server1:
-        condition: service_started
-      server2:
-        condition: service_started
-  webui:
-    image: webui
-    build:
-      context: .
-      dockerfile: WebUI/Dockerfile
-    ports:
-      - "9100:8080"
+      - mongo
+      - rabbitmq
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      MONGO_DB_NAME: EmployeeDb
+      MONGO_HOST: mongo
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
+      RabbitMQ__Exchange__Name: WebApiExchange
+      RabbitMQ__Exchange__Type: fanout
+      RabbitMQ__Exchange__Durable: true
+      RabbitMQ__Exchange__AutoDelete: false
+      RabbitMQ__Queue__Name: WebApiQueue
+      RabbitMQ__Queue__Durable: true
+      RabbitMQ__Queue__Exclusive: false
+      RabbitMQ__Queue__AutoDelete: false
+
 volumes:
-  mongo_data1:
-  mongo_config1:
-  mongo_data2:
-  mongo_config2:
+  mongo_data:
+  mongo_config:
   rabbitmq_data:
-      
