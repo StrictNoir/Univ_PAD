@@ -1,76 +1,86 @@
 ﻿using DataLayer.Entities;
-using Dapper;
-using System.Data;
-using Server.Repositories;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Server.Repositories
 {
     public class Repository<T> : IRepository<T> where T : Document
     {
-        private readonly IDbConnection _db;
+        private readonly IMongoCollection<T> _collection;
         private readonly ILogger<Repository<T>> _logger;
-
-        public Repository(IDbConnection db, ILogger<Repository<T>> logger)
+        public Repository(IMongoDatabase db, ILogger<Repository<T>> logger)
         {
-            _db = db;
+            _collection = db.GetCollection<T>(typeof(T).Name);
             _logger = logger;
         }
-
         public async Task<string> CreateAsync(T entity)
         {
             try
             {
-                var sql = $"INSERT INTO {typeof(T).Name}s (Id, /* other columns */) VALUES (@Id, /* params */)";
-                await _db.ExecuteAsync(sql, entity);
+                await _collection.InsertOneAsync(entity);
                 return entity.Id;
+
+            }
+            catch (MongoException ex)
+            {
+                _logger.LogError(ex, "MongoDB error while inserting {EntityType}.", typeof(T).Name);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error inserting {EntityType}", typeof(T).Name);
+                _logger.LogError(ex, "Unexpected error while inserting {EntityType}.", typeof(T).Name);
                 throw;
             }
         }
 
         public async Task<bool> DeleteAsync(string id)
         {
+            var objectId = new ObjectId(id);
             try
             {
-                var sql = $"DELETE FROM {typeof(T).Name}s WHERE Id = @Id";
-                var rows = await _db.ExecuteAsync(sql, new { Id = id });
-                return rows > 0;
+                var result = await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", objectId));
+                return result.DeletedCount > 0;
+            }
+            catch (MongoException ex)
+            {
+                _logger.LogError(ex, "MongoDB error while deleting {EntityType}.", typeof(T).Name);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting {EntityType}", typeof(T).Name);
+                _logger.LogError(ex, "Unexpected error while inserting {EntityType}.", typeof(T).Name);
                 throw;
             }
         }
 
         public async Task<IEnumerable<T>> GetAllAsync()
         {
-            var sql = $"SELECT * FROM {typeof(T).Name}s";
-            return await _db.QueryAsync<T>(sql);
+            return await _collection.Find(_ => true).ToListAsync();
         }
 
         public async Task<T?> GetByIdAsync(string id)
         {
-            var sql = $"SELECT * FROM {typeof(T).Name}s WHERE Id = @Id";
-            return await _db.QueryFirstOrDefaultAsync<T>(sql, new { Id = id });
+            var objectId = new ObjectId(id);
+            return await _collection.Find(Builders<T>.Filter.Eq("_id", objectId)).FirstOrDefaultAsync();
         }
 
-        public async Task<bool> UpsertAsync(T entity, string id)
+        public async Task<bool> UpsertAsync(T entity,string id)
         {
             try
             {
-                var sql = $@"
-                INSERT INTO {typeof(T).Name}s (Id, /* columns */) VALUES (@Id, /* params */)
-                ON CONFLICT (Id) DO UPDATE SET /* column=@column, ... */";
-                var rows = await _db.ExecuteAsync(sql, entity);
-                return rows > 0;
+                entity.Id = id;
+               var result = await _collection.ReplaceOneAsync(doc => doc.Id == id, entity, new ReplaceOptions() { IsUpsert = true});
+                bool isCreated = result.MatchedCount == 0 || result.UpsertedId != null;
+                return isCreated;
+            }
+            catch (MongoException ex)
+            {
+                _logger.LogError(ex, "MongoDB error while deleting {EntityType}.", typeof(T).Name);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error upserting {EntityType}", typeof(T).Name);
+                _logger.LogError(ex, "Unexpected error while inserting {EntityType}.", typeof(T).Name);
                 throw;
             }
         }

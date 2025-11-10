@@ -1,15 +1,11 @@
 ﻿using DataLayer.Entities;
-using System.Data;
-using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 
 namespace Server.Repositories
 {
-    public interface IEmployeeRepository : IRepository<Employee> { }
-
-    public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
+    public interface IEmployeeRepository: IRepository<Employee> { }
+    public class EmployeeRepository : Repository<Employee>,IEmployeeRepository
     {
-        public EmployeeRepository(IDbConnection db, ILogger<Repository<Employee>> logger) 
-            : base(db, logger) 
-        { }
+        public EmployeeRepository(IMongoDatabase db, ILogger<Repository<Employee>> logger) : base(db,logger) { }
     }
 }
