@@ -29,9 +29,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
-
-      POSTGRES_DB: db-postgresql-ams3-31504
-      POSTGRES_CONNECTION_STRING: connection_string
+      
+      MONGO_DB_NAME: db-mongodb-ams3-75048
+      MONGO_CONNECTION_STRING: string
 
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672

@@ -1,5 +1,5 @@
-using System.Data;
-using Npgsql;
+
+using MongoDB.Driver;
 using Server.Config;
 using Server.HostedServices;
 using Server.MappingProfiles;
@@ -10,29 +10,45 @@ using Server.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
 builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
+
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
+// Connection string section extraction from Appsettings.json
+var mongoDatabaseName = builder.Configuration["MONGO_DB_NAME"];
+var mongoConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"];
+
 
 // RabbitMq string section mapping  from appsettings.json
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
 // RabbitMQ service registration
-builder.Services.AddSingleton(typeof(IRabbitMQService<>), typeof(RabbitMQService<>));
+builder.Services.AddSingleton(typeof(IRabbitMQService<>),typeof(RabbitMQService<>));
 // RabbitMq Channel registration
 builder.Services.AddSingleton<IRabbitMQChannel, RabbitMQChannel>(); 
+// EmployeeHandlder registration
 builder.Services.AddSingleton<EmployeeMessageHandler>();
+// Employee Hosted Service registration
+
 builder.Services.AddHostedService<EmployeeConsumerHostedService>();
 
-// Postgres connection string
-var pgConnectionString = builder.Configuration[connection_string];
 
-// Register IDbConnection for Dapper
-builder.Services.AddScoped<IDbConnection>(sp =>
+// MongoClient driver setup
+
+builder.Services.AddSingleton<IMongoClient>(sp =>
 {
-    var conn = new NpgsqlConnection(pgConnectionString);
-    conn.Open();
-    return conn;
+    return new MongoClient(mongoConnectionString);
+});
+// Getting database
+builder.Services.AddScoped(sp =>
+{
+    var client = sp.GetRequiredService<IMongoClient>();
+    return client.GetDatabase(mongoDatabaseName);
 });
 
 // Repository registration
@@ -49,6 +65,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -64,3 +81,4 @@ var channel = app.Services.GetRequiredService<IRabbitMQChannel>();
 await channel.InitializeAsync();
 
 app.Run();
+
