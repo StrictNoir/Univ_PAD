@@ -1,6 +1,8 @@
 services:
   proxy:
-    image: proxy_image
+    build:
+      context: Proxy
+      dockerfile: Dockerfile
     container_name: proxy
     restart: unless-stopped
     ports:
@@ -8,12 +10,14 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 9000
-      SERVER_HOST: <SERVER_IP> # server ip
+      SERVER_HOST: 178.62.201.122 # server ip
       SERVER_PORT: 8080  # Backend Web API port
     depends_on: []
 
   webui:
-    image: webui
+    build:
+      context: WebUI
+      dockerfile: Dockerfile
     container_name: webui
     restart: unless-stopped
     ports:

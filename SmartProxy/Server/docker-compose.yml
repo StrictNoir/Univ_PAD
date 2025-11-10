@@ -31,7 +31,7 @@ services:
       MONGO_INITDB_DATABASE: EmployeeDb
 
   server:
-    image: web_api_image
+    build: .
     container_name: web_api
     restart: unless-stopped
     ports:
@@ -41,6 +41,7 @@ services:
       - rabbitmq
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
       MONGO_DB_NAME: EmployeeDb
       MONGO_HOST: mongo
       RabbitMQ__Host: rabbitmq
