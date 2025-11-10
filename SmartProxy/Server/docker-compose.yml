@@ -18,18 +18,6 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
-  mongo:
-    image: mongo:latest
-    container_name: mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-      - mongo_config:/data/configdb
-    environment:
-      MONGO_INITDB_DATABASE: EmployeeDb
-
   server:
     build: .
     container_name: web_api
@@ -37,13 +25,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - mongo
       - rabbitmq
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      MONGO_DB_NAME: EmployeeDb
-      MONGO_HOST: mongo
+      
+      MONGO_DB_NAME: db-mongodb-ams3-75048
+      MONGO_CONNECTION_STRING: string
+
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672
       RabbitMQ__UserName: guest
@@ -58,6 +47,4 @@ services:
       RabbitMQ__Queue__AutoDelete: false
 
 volumes:
-  mongo_data:
-  mongo_config:
   rabbitmq_data:

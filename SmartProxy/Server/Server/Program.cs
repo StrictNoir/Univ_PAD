@@ -21,9 +21,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
 // Connection string section extraction from Appsettings.json
-var mongoHost = builder.Configuration["MONGO_HOST"];
 var mongoDatabaseName = builder.Configuration["MONGO_DB_NAME"];
-var mongoConnectionString = $"mongodb://{mongoHost}:27017";
+var mongoConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"];
 
 
 // RabbitMq string section mapping  from appsettings.json
