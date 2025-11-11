@@ -1,7 +1,7 @@
 ﻿{
   "Routes": [
     {
-      "UpstreamHttpMethod": [ "Get" ],
+      "UpstreamHttpMethod": [ "Get", "Put", "Post", "Delete" ],
       "UpstreamPathTemplate": "/api/{everything}",
       "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "http",
@@ -10,26 +10,7 @@
           "Host": "178.62.201.122",
           "Port": 8080
         }
-      ],
-      "FileCacheOptions": { "TtlSeconds": 60 },
-      "LoadBalancerOptions": {
-        "Type": "RoundRobin"
-      }
-    },
-    {
-      "UpstreamHttpMethod": [ "Put", "Post", "Delete" ],
-      "UpstreamPathTemplate": "/api/{everything}",
-      "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "178.62.201.122",        
-          "Port": 8080
-        }
-      ],
-      "LoadBalancerOptions": {
-        "Type": "RoundRobin"
-      }
+      ]
     }
   ]
 }

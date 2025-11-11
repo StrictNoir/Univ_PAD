@@ -15,7 +15,7 @@ public class EditController : Controller
     [HttpPost]
     public async Task<IActionResult> Add(Employee employee)
     {
-        var res = await _http.PostAsJsonAsync("http://proxy:9000/api/employee/add", employee);
+        var res = await _http.PostAsJsonAsync("http://178.62.201.122:8080/api/employee/add", employee);
         if (res.IsSuccessStatusCode)
             return RedirectToAction("Index", "Home");
 
@@ -30,7 +30,7 @@ public class EditController : Controller
         if (string.IsNullOrEmpty(id))
             return BadRequest("Id is required.");
 
-        var employee = await _http.GetFromJsonAsync<Employee>($"http://proxy:9000/api/employee/{id}");
+        var employee = await _http.GetFromJsonAsync<Employee>($"http://178.62.201.122:8080/api/employee/{id}");
         if (employee == null)
             return NotFound();
 
@@ -40,24 +40,25 @@ public class EditController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(Employee employee)
     {
-        if (employee == null || string.IsNullOrEmpty(employee.Email))
+        if (string.IsNullOrEmpty(employee.Id))
             return BadRequest();
 
-        var res = await _http.PutAsJsonAsync($"http://proxy:9000/api/employee/{employee.Email}", employee);
+        var res = await _http.PutAsJsonAsync($"http://178.62.201.122:8080/api/employee/update/{employee.Id}", employee);
         if (res.IsSuccessStatusCode)
             return RedirectToAction("Index", "Home");
 
         ModelState.AddModelError("", "Error updating employee.");
+        Console.Write(employee);
         return View(employee);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete([FromForm] string email)
+    public async Task<IActionResult> Delete([FromForm] string id)
     {
-        if (string.IsNullOrEmpty(email))
+        if (string.IsNullOrEmpty(id))
             return BadRequest();
 
-        var res = await _http.DeleteAsync($"http://proxy:9000/api/employee/delete/0");
+        var res = await _http.DeleteAsync($"http://178.62.201.122:8080/api/employee/delete/{id}");
         if (res.IsSuccessStatusCode)
             return RedirectToAction("Index", "Home");
 

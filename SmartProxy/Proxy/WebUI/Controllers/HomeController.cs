@@ -18,7 +18,7 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var employees = await _http.GetFromJsonAsync<List<Employee>>("http://proxy:9000/api/employee/all");
+        var employees = await _http.GetFromJsonAsync<List<Employee>>("http://178.62.201.122:8080/api/employee/all");
         return View(employees);
     }
     public IActionResult Add()
@@ -38,7 +38,7 @@ public class HomeController : Controller
         if (string.IsNullOrEmpty(id))
             return BadRequest();
 
-        var res = await _http.DeleteAsync($"http://proxy:9000/api/employee/delete/{id}");
+        var res = await _http.DeleteAsync($"http://178.62.201.122:8080/api/employee/delete/{id}");
         if (res.IsSuccessStatusCode)
             return RedirectToAction("Index", "Home");
 

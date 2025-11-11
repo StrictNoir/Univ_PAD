@@ -1,22 +1,4 @@
 services:
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASSWORD: guest
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 5s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
 
   server:
     build: .
@@ -24,27 +6,9 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    depends_on:
-      - rabbitmq
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
       
       MONGO_DB_NAME: db-mongodb-ams3-75048
       MONGO_CONNECTION_STRING: string
-
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Port: 5672
-      RabbitMQ__UserName: guest
-      RabbitMQ__Password: guest
-      RabbitMQ__Exchange__Name: WebApiExchange
-      RabbitMQ__Exchange__Type: fanout
-      RabbitMQ__Exchange__Durable: true
-      RabbitMQ__Exchange__AutoDelete: false
-      RabbitMQ__Queue__Name: WebApiQueue
-      RabbitMQ__Queue__Durable: true
-      RabbitMQ__Queue__Exclusive: false
-      RabbitMQ__Queue__AutoDelete: false
-
-volumes:
-  rabbitmq_data:
