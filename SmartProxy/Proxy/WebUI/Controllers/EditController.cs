@@ -25,16 +25,16 @@ public class EditController : Controller
 
     // GET: /Edit/Edit?email=someone@example.com
     [HttpGet]
-    public async Task<IActionResult> Edit([FromQuery] string email)
+    public async Task<IActionResult> Edit([FromQuery] string id)
     {
-        if (string.IsNullOrEmpty(email))
-            return BadRequest("Email is required.");
+        if (string.IsNullOrEmpty(id))
+            return BadRequest("Id is required.");
 
-        var employee = await _http.GetFromJsonAsync<Employee>($"http://proxy:9000/api/employee/{email}");
+        var employee = await _http.GetFromJsonAsync<Employee>($"http://proxy:9000/api/employee/{id}");
         if (employee == null)
             return NotFound();
 
-        return View("Edit", employee); // Edit.cshtml expects @model Employee
+        return View("Edit", employee);
     }
 
     [HttpPost]

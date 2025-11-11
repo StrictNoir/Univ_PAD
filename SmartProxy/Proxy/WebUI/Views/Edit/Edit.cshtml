@@ -4,24 +4,28 @@
 
 <form asp-action="Edit" method="post">
     <div>
+        <label>Id</label>
+        <input asp-for="Id" readonly/>
+    </div>
+    <div>
         <label>First Name</label>
-        <input asp-for="FirstName" />
+        <input asp-for="FirstName"/>
     </div>
     <div>
         <label>Last Name</label>
-        <input asp-for="LastName" />
+        <input asp-for="LastName"/>
     </div>
     <div>
         <label>Email</label>
-        <input asp-for="Email" readonly />
+        <input asp-for="Email"/>
     </div>
     <div>
         <label>Position</label>
-        <input asp-for="Position" />
+        <input asp-for="Position"/>
     </div>
     <div>
         <label>Salary</label>
-        <input asp-for="Salary" type="number" step="0.01" />
+        <input asp-for="Salary" type="number" step="0.01"/>
     </div>
     <button type="submit">Save Changes</button>
 </form>

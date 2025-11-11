@@ -27,19 +27,18 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public IActionResult Edit(string email)
+    public IActionResult Edit(string id)
     {
-        // Redirect to the Edit controller's Edit GET action with email as query parameter
-        return RedirectToAction("Edit", "Edit", new { email });
+        return Redirect($"~/Edit/Edit?id={Uri.EscapeDataString(id)}");
     }
-
+    
     [HttpPost]
-    public async Task<IActionResult> Delete(string email)
+    public async Task<IActionResult> Delete(string id)
     {
-        if (string.IsNullOrEmpty(email))
+        if (string.IsNullOrEmpty(id))
             return BadRequest();
 
-        var res = await _http.DeleteAsync($"http://proxy:9000/api/employee/{email}");
+        var res = await _http.DeleteAsync($"http://proxy:9000/api/employee/delete/{id}");
         if (res.IsSuccessStatusCode)
             return RedirectToAction("Index", "Home");
 
