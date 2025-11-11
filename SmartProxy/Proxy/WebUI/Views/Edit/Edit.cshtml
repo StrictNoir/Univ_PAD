@@ -1,8 +1,8 @@
 @model WebUI.Models.Employee
 
-<h2>Add Employee</h2>
+<h2>Edit Employee</h2>
 
-<form asp-action="Add" method="post">
+<form asp-action="Edit" method="post">
     <div>
         <label>First Name</label>
         <input asp-for="FirstName" />
@@ -13,7 +13,7 @@
     </div>
     <div>
         <label>Email</label>
-        <input asp-for="Email" />
+        <input asp-for="Email" readonly />
     </div>
     <div>
         <label>Position</label>
@@ -23,5 +23,5 @@
         <label>Salary</label>
         <input asp-for="Salary" type="number" step="0.01" />
     </div>
-    <button type="submit">Add</button>
+    <button type="submit">Save Changes</button>
 </form>

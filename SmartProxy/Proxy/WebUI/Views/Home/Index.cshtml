@@ -1,5 +1,85 @@
 ﻿@model List<Employee>
 
+@{
+ViewData["Title"] = "Employees";
+}
+
+<style>
+    h2 {
+        font-size: 1.8em;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    table {
+        width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        border-collapse: collapse;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    thead {
+        background-color: #f5f5f5;
+    }
+    th, td {
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 1px solid #ddd;
+        font-size: 14px;
+    }
+    th {
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #555;
+        background-color: #f0f0f0;
+    }
+    tr:nth-child(even) {
+        background-color: #fafafa;
+    }
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+    .action-btn {
+        padding: 6px 10px;
+        font-size: 13px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: white;
+    }
+    .edit-btn {
+        background-color: #3b82f6;
+    }
+    .edit-btn:hover {
+        background-color: #2563eb;
+    }
+    .delete-btn {
+        background-color: #dc2626;
+    }
+    .delete-btn:hover {
+        background-color: #b91c1c;
+    }
+    .add-btn {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 16px;
+        background-color: #16a34a;
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .add-btn:hover {
+        background-color: #15803d;
+    }
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+</style>
+
 <h2>Employees</h2>
 
 <table>
@@ -10,18 +90,32 @@
         <th>Email</th>
         <th>Position</th>
         <th>Salary</th>
+        <th>Actions</th>
     </tr>
     </thead>
     <tbody>
     @foreach (var e in Model)
     {
-        <tr>
-            <td>@e.FirstName</td>
-            <td>@e.LastName</td>
-            <td>@e.Email</td>
-            <td>@e.Position</td>
-            <td>@e.Salary</td>
-        </tr>
+    <tr>
+        <td>@e.FirstName</td>
+        <td>@e.LastName</td>
+        <td>@e.Email</td>
+        <td>@e.Position</td>
+        <td>@e.Salary.ToString("C")</td>
+        <td class="actions">
+            <form asp-action="Edit" method="get" style="display:inline;">
+                <input type="hidden" name="email" value="@e.FirstName" />
+                <button type="submit" class="action-btn edit-btn">Edit</button>
+            </form>
+            <form asp-action="Delete" method="post" style="display:inline;">
+                <input type="hidden" name="email" value="@e.FirstName" />
+                <button type="submit" class="action-btn delete-btn">Delete</button>
+            </form>
+        </td>
+    </tr>
     }
     </tbody>
 </table>
+
+<a asp-action="Add" class="add-btn">Add New Employee</a>
+

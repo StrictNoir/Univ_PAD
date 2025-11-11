@@ -1,0 +1,100 @@
+@model WebUI.Models.Employee
+
+@{
+ViewData["Title"] = "Add Employee";
+}
+
+<style>
+    h2 {
+        font-size: 1.8em;
+        font-weight: 600;
+        margin-bottom: 25px;
+        color: #333;
+    }
+    form {
+        max-width: 600px;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+    td {
+        vertical-align: middle;
+    }
+    td:first-child {
+        width: 35%;
+        padding-right: 15px;
+        text-align: right;
+        font-weight: 500;
+        color: #444;
+    }
+    input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+    input:focus {
+        border-color: #3b82f6;
+        outline: none;
+    }
+    button {
+        width: 100%;
+        padding: 10px;
+        background-color: #2563eb;
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 25px;
+        transition: background-color 0.2s;
+    }
+    button:hover {
+        background-color: #1e40af;
+    }
+</style>
+
+
+<form asp-action="Add" method="post">
+    <table>
+        <tr>
+            <td></td>
+            <td><h2>Add Employee</h2></td>
+        </tr>
+        <tr>
+            <td><label asp-for="FirstName">First Name</label></td>
+            <td><input asp-for="FirstName"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="LastName">Last Name</label></td>
+            <td><input asp-for="LastName"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Email">Email</label></td>
+            <td><input asp-for="Email" type="email"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Position">Position</label></td>
+            <td><input asp-for="Position"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Salary">Salary</label></td>
+            <td><input asp-for="Salary" type="number" step="0.01"/></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>
+                <button type="submit">Add Employee</button>
+            </td>
+        </tr>
+    </table>
+
+</form>
