@@ -1,31 +1,104 @@
 @model WebUI.Models.Employee
 
-<h2>Edit Employee</h2>
+@{
+ViewData["Title"] = "Edit Employee";
+}
+
+<style>
+    h2 {
+        font-size: 1.8em;
+        font-weight: 600;
+        margin-bottom: 25px;
+        color: #333;
+    }
+    form {
+        max-width: 600px;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+    td {
+        vertical-align: middle;
+    }
+    td:first-child {
+        width: 35%;
+        padding-right: 15px;
+        text-align: right;
+        font-weight: 500;
+        color: #444;
+    }
+    input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+    input:focus {
+        border-color: #3b82f6;
+        outline: none;
+    }
+    input[readonly] {
+        background-color: #f5f5f5;
+        color: #777;
+    }
+    button {
+        width: 100%;
+        padding: 10px;
+        background-color: #16a34a;
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 25px;
+        transition: background-color 0.2s;
+    }
+    button:hover {
+        background-color: #15803d;
+    }
+</style>
+
+
 
 <form asp-action="Edit" method="post">
-    <div>
-        <label>Id</label>
-        <input asp-for="Id" readonly/>
-    </div>
-    <div>
-        <label>First Name</label>
-        <input asp-for="FirstName"/>
-    </div>
-    <div>
-        <label>Last Name</label>
-        <input asp-for="LastName"/>
-    </div>
-    <div>
-        <label>Email</label>
-        <input asp-for="Email"/>
-    </div>
-    <div>
-        <label>Position</label>
-        <input asp-for="Position"/>
-    </div>
-    <div>
-        <label>Salary</label>
-        <input asp-for="Salary" type="number" step="0.01"/>
-    </div>
+    <table>
+        <tr>
+            <td></td>
+            <td><h2>Edit Employee</h2></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Id">ID</label></td>
+            <td><input asp-for="Id" readonly/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="FirstName">First Name</label></td>
+            <td><input asp-for="FirstName"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="LastName">Last Name</label></td>
+            <td><input asp-for="LastName"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Email">Email</label></td>
+            <td><input asp-for="Email" type="email"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Position">Position</label></td>
+            <td><input asp-for="Position"/></td>
+        </tr>
+        <tr>
+            <td><label asp-for="Salary">Salary</label></td>
+            <td><input asp-for="Salary" type="number" step="0.01"/></td>
+        </tr>
+    </table>
+
     <button type="submit">Save Changes</button>
 </form>
