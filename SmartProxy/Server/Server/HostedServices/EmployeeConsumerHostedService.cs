@@ -1,17 +1,13 @@
-﻿using Server.RabbitMq;
-
+﻿
 namespace Server.HostedServices
 {
     public class EmployeeConsumerHostedService : IHostedService
     {
-        private readonly EmployeeMessageHandler _handler;
         private readonly ILogger<EmployeeConsumerHostedService> _logger;
 
         public EmployeeConsumerHostedService(
-            EmployeeMessageHandler handler,
             ILogger<EmployeeConsumerHostedService> logger)
         {
-            _handler = handler;
             _logger = logger;
         }
 
@@ -24,7 +20,6 @@ namespace Server.HostedServices
 
             try
             {
-                await _handler.StartAsync();
                 _logger.LogInformation("Employee Consumer started successfully and is now listening for messages.");
 
             }

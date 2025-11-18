@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using DataLayer.Dtos;
 using DataLayer.Entities;
-using Server.RabbitMq;
 using Server.Repositories;
 
 namespace Server.Services
@@ -16,9 +15,8 @@ namespace Server.Services
         public EmployeeService(
             IEmployeeRepository repo,
             IMapper mapper,
-            IRabbitMQService<Employee> rabbitMqService,
             ILogger<EntityService<Employee, GetEmployeeDto, UpsertEmployeeDto>> logger)
-            : base(repo, mapper, rabbitMqService, logger)
+            : base(repo, mapper, logger)
         {
         }
     }
