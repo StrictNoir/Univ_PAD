@@ -11,4 +11,4 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       
       MONGO_DB_NAME: db-mongodb-ams3-75048
-      MONGO_CONNECTION_STRING: string
+      MONGO_CONNECTION_STRING: "mongodb+srv://doadmin:Q7n5149b6tTVy28j@db-mongodb-ams3-75048-12674deb.mongo.ondigitalocean.com/admin?authSource=admin&replicaSet=db-mongodb-ams3-75048&tls=true"
